@@ -16,13 +16,13 @@ createMyGRs(e, ovF, allExpe, grLScores = NULL, grLDistance = NULL,
 
 \item{grLScores}{a GRangeList with annotations for which you would like to know the best score overlapping the GRanges of experiments}
 
+\item{grLDistance}{a GRangeList with annotations for which you would like to know the distance to the closest item}
+
 \item{nameOfRef}{among the samples which one is the reference, the others will be merged as "replicates"}
 
 \item{useSummitPMFlanking}{logical value to specify if you prefer to use the full region of the peak or only the summit +/- the `flankingSize`}
 
 \item{flankingSize}{integer value used to extend the summit if `useSummitPMFlanking` is TRUE}
-
-\item{grDistance}{a GRangeList with annotations for which you would like to know the distance to the closest item}
 }
 \value{
 A list with:

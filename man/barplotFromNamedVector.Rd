@@ -15,6 +15,12 @@ barplotFromNamedVector(data, colorsForGraphs = NULL,
 
 \item{orderForCategory1}{a vector with the names of the category1 in the order it should be plotted}
 
+\item{legend}{a logical to precise if the legend should be added (default is TRUE)}
+
+\item{args.legend}{list of arguments for the leged (default is topright inset=(-0.2, 0), bg= "white")}
+
+\item{las}{a numeric value between 0 and 3 to specify the style of axis label (default is 2)}
+
 \item{...}{other arguments for barplot}
 }
 \value{
@@ -28,7 +34,7 @@ Will plot a barplot with one bar per category1
 }
 \examples{
 topTs <- c(5, 10, 15, 20) * 1e3
-colorsForGraphs<-rainbow(2+length(topTs))
+colorsForGraphs<-grDevices::rainbow(2+length(topTs))
 names(colorsForGraphs)<-c(paste0("overlapTop",sort(topTs/1e3),"k"),"overlap","specific")
 v <- c(15809, rep(5000, 4), c(9316, 4762, 4327, 3831, 5051, 36638))
 names(v) <- paste(c(rep("ChIP1", 5), rep("ChIP2", 6)),
