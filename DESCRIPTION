@@ -1,0 +1,20 @@
+Package: analysePeaks
+Title: Compare, annotate your peaks
+Version: 0.0.1
+Authors@R: 
+    person(given = "Lucille",
+           family = "Lopez-Delisle",
+           role = c("aut", "cre"),
+           email = "lucille.delisle@epfl.ch",
+           comment = c(ORCID = "0000-0002-1964-4960"))
+Description: This package will compare peaks (usually narrow peaks). It can be comparing replicates or comparing different techniques. Compare with peaks from another experiment. Compare to TSS, to binding motifs...
+License: CC BY 4.0
+Encoding: UTF-8
+LazyData: true
+RoxygenNote: 6.1.1
+Imports:
+    stats,
+    pheatmap,
+    reshape
+Suggests: 
+    testthat (>= 2.1.0)
