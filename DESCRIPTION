@@ -1,6 +1,6 @@
 Package: analysePeaks
 Title: Compare, annotate your peaks
-Version: 0.0.5
+Version: 0.0.6
 Authors@R: 
     person(given = "Lucille",
            family = "Lopez-Delisle",
@@ -17,6 +17,7 @@ Imports:
     graphics,
     utils,
     usefulLDfunctions,
+    usefulLDfunctionsGR,
     GenomicRanges,
     stats,
     pheatmap,

@@ -183,125 +183,6 @@ plotPairwiseComparison <- function(name1, name2, ovF, allExpe, step = 5000){
 }
 
 
-#' Create a GRList with a reference GR and a sample GR annotated with GRanges provided in arguments
-#'
-#'@param e name of the experiment usually sample1____sample2(____sample3 etc...)
-#'@param ovF a list which contains the filtered overlaps between the samples. Should at least contains a item named e.
-#'@param allExpe a GRangeList with at least each sample in `e`
-#'@param grLScores a GRangeList with annotations for which you would like to know the best score overlapping the GRanges of experiments
-#'@param grLDistance a GRangeList with annotations for which you would like to know the distance to the closest item
-#'@param nameOfRef among the samples which one is the reference, the others will be merged as "replicates"
-#'@param useSummitPMFlanking logical value to specify if you prefer to use the full region of the peak or only the summit +/- the `flankingSize`
-#'@param flankingSize integer value used to extend the summit if `useSummitPMFlanking` is TRUE
-#'@return A list with:
-#'`stringSet` a string with all samples other than the reference separated by comma
-#'`myGRs` a GRangeList of 2 elements which are
-#'       1. The peaks which are shared by all samples which are considered as "replicates"
-#'       2. The peaks of the reference
-#'`nameOfRef` the name of the reference used
-#'`namesOfGrLScores` the names of grLScores
-#'`namesOfGrLDistance` the names of grLDistance
-#'`useSummitPMFlanking` the value of useSummitPMFlanking which was used
-#'`flankingSize` the value of flankingSize which was used
-#'@details The GRanges of myGRs will have in mcols a new information which is
-#'bestNameOfTheGRScore for each GR in grLScores and
-#'distanceToTheNearestNameOfTheGR for each GR in grLDistance
-#'The first item of myGRs will also have inUniqueRef which is the index of the merged item of the Reference.
-#'The second item of myGRs will also have inNoneOfTheSet
-#'@importFrom GenomicRanges mcols start end flank findOverlaps distanceToNearest
-#'@export
-createMyGRs <- function(e, ovF, allExpe,
-                        grLScores = NULL, grLDistance = NULL,
-                        nameOfRef = "ChIP",
-                        useSummitPMFlanking = T, flankingSize = 150){
-  if ( ! e %in% names(ovF)){
-    stop(e, "is not part of the names of ovF")
-  }
-  # df contains the filtered overlaps
-  df <- ovF[[e]]
-  samplesToCheck <- colnames(df)
-  if (!nameOfRef %in% samplesToCheck){
-    stop(nameOfRef, " is not part of ", e)
-  }
-  # stringSet contains the name of other samples which are not the Ref
-  stringSet <- paste(setdiff(samplesToCheck, nameOfRef), collapse = ",")
-  df$nbNA <- apply(df, 1, function(v){
-    sum(is.na(v))
-  })
-  df$RefisNA <- as.numeric(is.na(df[, nameOfRef]))
-  # name1 is the name of the first non Ref sample
-  name1 <- setdiff(samplesToCheck, nameOfRef)[1]
-  # We are now selecting the indices of name1 items
-  # which overlap with all other samples which are not the Ref
-  i_fullOverlap <- df[, name1][(df$nbNA - df$RefisNA) == 0]
-  # grSetRep contains the subset of the GRange of name1 which
-  # Overlap with all other samples which are not the Ref
-  grSetRep <- allExpe[[name1]][i_fullOverlap]
-  # We store in this GRanges the index of the overlapped item in Ref
-  # (in the metadata "inUniqueRef")
-  grSetRep$inUniqueRef <- df[match(i_fullOverlap, df[, name1]), nameOfRef]
-  # We now change the coordiantes of the GRange and keep
-  # the summit +/- the flankingSize
-  grMySummitsExtended <- grSetRep
-  if (useSummitPMFlanking){
-    grMySummits <- grSetRep
-    GenomicRanges::start(grMySummits) <- GenomicRanges::start(grSetRep) +
-      grSetRep$relativeSummit
-    GenomicRanges::end(grMySummits) <- GenomicRanges::start(grMySummits)
-    grMySummitsExtended <- GenomicRanges::flank(grMySummits,
-                                                width = flankingSize,
-                                                both = T)
-  }
-  grRef <- allExpe[[nameOfRef]]
-  # We annotate the reference GRanges to
-  # Specify when it is a totally specific peak
-  grRef$inNoneOfTheSet <- TRUE
-  grRef$inNoneOfTheSet[na.omit(df[df$nbNA != (length(samplesToCheck) - 1),
-                                  nameOfRef])] <- F
-  grRefSummitsExtended <- grRef
-  if (useSummitPMFlanking){
-    grRefSummits <- grRef
-    GenomicRanges::start(grRefSummits) <- GenomicRanges::start(grRef) +
-      grRef$relativeSummit
-    GenomicRanges::end(grRefSummits) <- GenomicRanges::start(grRefSummits)
-    grRefSummitsExtended <- GenomicRanges::flank(grRefSummits,
-                                                 width = flankingSize,
-                                                 both = T)
-  }
-  myGRs <- list(grMySummitsExtended, grRefSummitsExtended)
-  # We will annotate the GRanges with the features which are in parameters
-  for (iGR in 1:2){
-    for (jGR in 1:length(grLScores)){
-      annotScoreOverlap <-
-        as.data.frame(GenomicRanges::findOverlaps(myGRs[[iGR]],
-                                                  grLScores[[jGR]]))
-      annotScoreOverlapByScore <-
-        aggregate(list(
-          score = grLScores[[jGR]]$score[annotScoreOverlap$subjectHits]
-        ), by = list(peak = annotScoreOverlap$queryHits), FUN = max)
-      nameJ <- names(grLScores)[jGR]
-      GenomicRanges::mcols(myGRs[[iGR]])[, paste0("best", nameJ, "Score")] <- 0
-      GenomicRanges::mcols(myGRs[[iGR]])[annotScoreOverlapByScore$peak,
-                                         paste0("best", nameJ, "Score")] <-
-        annotScoreOverlapByScore$score
-    }
-    for (jGR in 1:length(grLDistance)){
-      nameJ <- names(grLDistance)[jGR]
-      GenomicRanges::mcols(myGRs[[iGR]])[,
-                                         paste0("distanceToNearest",
-                                                nameJ)] <-
-        as.data.frame(
-          GenomicRanges::distanceToNearest(myGRs[[iGR]],
-                                           grLDistance[[jGR]]))$distance
-    }
-  }
-  return(list("stringSet" = stringSet, "myGRs" = myGRs,
-              "nameOfRef" = nameOfRef, "namesOfGrLScores" = names(grLScores),
-              "namesOfGrLDistance" = names(grLDistance),
-              "useSummitPMFlanking" = useSummitPMFlanking,
-              "flankingSize" = flankingSize))
-}
-
 #' Plot histograms for the scores or the distance of features in the Set and in the Reference
 #' As well as when it is in Set and in the Set but not in the Reference and vice-versa
 #'
@@ -345,19 +226,19 @@ plotClassicalHistogramForMyGRs <- function(myGRAndAttributes){
     }))
     # Usually I do not want to plot all values, only like a boxplot would do:
     xmax <- min(max(allData), quantile(allData, probs = 0.75) +
-      1.5 * diff(quantile(allData, probs = c(0.25, 0.75))))
+                  1.5 * diff(quantile(allData, probs = c(0.25, 0.75))))
     # But sometimes the data is full of 0
     if (xmax != max(allData)){
       if (median(allData) == 0){
         xmax <- min(max(allData), quantile(allData[allData > 0], probs = 0.75) +
-          1.5 * diff(quantile(allData[allData > 0], probs = c(0.25, 0.75))))
+                      1.5 * diff(quantile(allData[allData > 0], probs = c(0.25, 0.75))))
       }
       # And sometimes it is still very low
       if (xmax == min(allData)){
         xmax <- max(allData)
       }
     }
-    h <- graphics::hist(allData[allData < xmax], plot = F)
+    h <- graphics::hist(allData[allData <= xmax], plot = F)
     breakD <- h$breaks[2] - h$breaks[1]
     # I will now plot the histograms of the values
     for (iGR in 1:2){
@@ -369,7 +250,7 @@ plotClassicalHistogramForMyGRs <- function(myGRAndAttributes){
                        main = paste0(c("Frequency of\n",
                                        "")[1 + as.numeric(freqV)],
                                      what, "\n in ", c("Set", "Ref")[iGR]),
-                       xlab = what,
+                       xlab = "",
                        sub = paste0("set:", myGRAndAttributes[["stringSet"]],
                                     " ref:", myGRAndAttributes[["nameOfRef"]]))
         if (iGR == 1){
@@ -385,111 +266,13 @@ plotClassicalHistogramForMyGRs <- function(myGRAndAttributes){
                        col = grDevices::rgb(0, 1, 0, 0.5), add = T)
         graphics::legend(x = "topright", legend = c("all", "specific"),
                          fill = c(grDevices::rgb(1, 0, 0, 0.5),
-                                  grDevices::rgb(0, 1, 0, 0.5)))
+                                  grDevices::rgb(0, 1, 0, 0.5)),
+                         bg = "white")
       }
     }
   }
 }
 
-#' Give category names from thresholds
-#'
-#' @param thresholdValues a numeric vector sorted in decreasing order which define the borders of categories
-#' @param lastCateName a string which give the name of the category when it is below the last value of `thresholdValues`
-#' @param unit a string which will be pasted after the threshold values
-#' @importFrom utils head
-#' @export
-cateNamesFromThreshold <- function(thresholdValues, lastCateName, unit) {
-  return(c(paste0("above", thresholdValues[1], unit),
-           paste0(thresholdValues[-1], "-",
-                  utils::head(thresholdValues, length(thresholdValues) - 1),
-                  unit),
-           lastCateName))
-}
-
-#' Add annotations to the list to be able to plot categories
-#'
-#' @param myGRAndAttributes Should be the output of \link[analysePeaks]{createMyGRs}
-#' @param thresholdsForgrLScores a list with the threshold to use to make categories for the features where score is important
-#' @param thresholdsForgrLDistance a list with the threshold to use to make categories for the features where distance is important
-#' @return a list like myGRAndAttributes but with more attributes.
-#' @importFrom GenomicRanges mcols
-#' @export
-annotateWithCate <- function(myGRAndAttributes, thresholdsForgrLScores,
-                             thresholdsForgrLDistance){
-  allCates <- list()
-  for (jGR in 1:length(thresholdsForgrLScores)){
-    nameJ <- names(thresholdsForgrLScores)[jGR]
-    thresholdValues <- sort(thresholdsForgrLScores[[jGR]], decreasing = T)
-    if (median(thresholdValues) > 1e3){
-      cateNames <- analysePeaks::cateNamesFromThreshold(
-        thresholdValues = thresholdValues / 1e3,
-        lastCateName = paste0("no", nameJ),
-        unit = "k")
-    } else {
-      cateNames <- analysePeaks::cateNamesFromThreshold(
-        thresholdValues = thresholdValues,
-        lastCateName = paste0("no", nameJ),
-        unit = "")
-    }
-    whatString <- paste("score of", nameJ)
-    if (myGRAndAttributes[["useSummitPMFlanking"]]){
-      whatString <- paste(whatString,
-                          "in summit +/-",
-                          myGRAndAttributes[["flankingSize"]],
-                          "bp")
-    }
-    allCates[[length(allCates) + 1]] <- list(
-      nameOfOriCol = paste0("best", nameJ, "Score"),
-      nameOfCol = paste0("best", nameJ, "ScoreCate"),
-      cateNames = cateNames,
-      thresholdValues = thresholdValues,
-      what = whatString)
-  }
-  for (jGR in 1:length(thresholdsForgrLDistance)){
-    nameJ <- names(thresholdsForgrLDistance)[jGR]
-    thresholdValues <- sort(thresholdsForgrLDistance[[jGR]], decreasing = T)
-    if (median(thresholdValues) > 1e3){
-      cateNames <- analysePeaks::cateNamesFromThreshold(
-        thresholdValues = thresholdValues / 1e3,
-        lastCateName = paste0("at", nameJ),
-        unit = "kb")
-    } else {
-      cateNames <- analysePeaks::cateNamesFromThreshold(
-        thresholdValues = thresholdValues,
-        lastCateName = paste0("at", nameJ),
-        unit = "bp")
-    }
-    whatString <- paste("distance to the closest", nameJ)
-    allCates[[length(allCates) + 1]] <- list(
-      nameOfOriCol = paste0("distanceToNearest", nameJ),
-      nameOfCol = paste0("distanceToNearest", nameJ, "Cate"),
-      cateNames = cateNames,
-      thresholdValues = thresholdValues,
-      what = whatString)
-  }
-  myGRs <- myGRAndAttributes[["myGRs"]]
-  for (i in 1:length(allCates)){
-    nameOfOriCol <- allCates[[i]][["nameOfOriCol"]]
-    nameOfCol <- allCates[[i]][["nameOfCol"]]
-    cateNames <- allCates[[i]][["cateNames"]]
-    thresholdValues <- allCates[[i]][["thresholdValues"]]
-    whatString <- allCates[[i]][["what"]]
-    for (iGR in 1:2){
-      if (! nameOfOriCol %in% names(GenomicRanges::mcols(myGRs[[iGR]]))){
-        stop(nameOfOriCol, " is not part of the attributes.")
-      }
-      GenomicRanges::mcols(myGRs[[iGR]])[, nameOfCol] <- cateNames[1]
-      for (i in 1:length(thresholdValues)){
-        GenomicRanges::mcols(myGRs[[iGR]])[
-          GenomicRanges::mcols(myGRs[[iGR]])[, nameOfOriCol] <=
-            thresholdValues[i],
-          nameOfCol] <- cateNames[i + 1]
-      }
-    }
-  }
-  myGRAndAttributes[["myGRs"]] <- myGRs
-  return(c(myGRAndAttributes, list(allCates = allCates)))
-}
 
 #' Plot barplot for categories of a specific feature for a Set and a Ref
 #'
@@ -532,11 +315,15 @@ plotAllBarPlotForCategoriesFromMyGR <- function(myGRs, nameOfColWithCate,
   graphics::par(mar = c(4 + maxChar / 3, 4, 4, 6), xpd = TRUE)
   # The table is displayed as barplot
   graphics::barplot(t, legend = T,
+                    args.legend = list(x = "topright", inset = c(-0.2, 0),
+                                       bg = "white"),
                     main = paste0(what, "\n for peaks of the Set\n"),
                     col = grDevices::rainbow(length(cateNames)),
                     sub = paste0("set:", stringSet, " ref:", nameOfRef))
   # Also as proportion
   graphics::barplot(prop.table(t, 2), legend = T,
+                    args.legend = list(x = "topright", inset = c(-0.2, 0),
+                                       bg = "white"),
                     main = paste0("Proportion of peaks in category for \n",
                                   what, "\n for peaks of the Set"),
                     col = grDevices::rainbow(length(cateNames)),
@@ -618,7 +405,7 @@ plotAllPheatmapsFor2CategoriesFromMyGR <- function(myGRs, nameOfColWithCate1,
       stop(nameOfColWithCate1, " is not in myGRs[[", i, "]]\n")
     }
     if (!nameOfColWithCate2 %in%
-       colnames(GenomicRanges::mcols(myGRs[[i]]))){
+        colnames(GenomicRanges::mcols(myGRs[[i]]))){
       stop(nameOfColWithCate2, " is not in myGRs[[", i, "]]\n")
     }
   }
