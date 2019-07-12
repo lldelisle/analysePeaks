@@ -1,6 +1,6 @@
 Package: analysePeaks
 Title: Compare, annotate your peaks
-Version: 0.0.4
+Version: 0.0.5
 Authors@R: 
     person(given = "Lucille",
            family = "Lopez-Delisle",

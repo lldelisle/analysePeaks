@@ -344,16 +344,18 @@ plotClassicalHistogramForMyGRs <- function(myGRAndAttributes){
       GenomicRanges::mcols(gr)[, myCol]
     }))
     # Usually I do not want to plot all values, only like a boxplot would do:
-    xmax <- quantile(allData, probs = 0.75) +
-      1.5 * diff(quantile(allData, probs = c(0.25, 0.75)))
+    xmax <- min(max(allData), quantile(allData, probs = 0.75) +
+      1.5 * diff(quantile(allData, probs = c(0.25, 0.75))))
     # But sometimes the data is full of 0
-    if (median(allData) == 0){
-      xmax <- quantile(allData[allData > 0], probs = 0.75) +
-        1.5 * diff(quantile(allData[allData > 0], probs = c(0.25, 0.75)))
-    }
-    # And sometimes it is still very low
-    if (xmax == min(allData)){
-      xmax <- max(allData)
+    if (xmax != max(allData)){
+      if (median(allData) == 0){
+        xmax <- min(max(allData), quantile(allData[allData > 0], probs = 0.75) +
+          1.5 * diff(quantile(allData[allData > 0], probs = c(0.25, 0.75))))
+      }
+      # And sometimes it is still very low
+      if (xmax == min(allData)){
+        xmax <- max(allData)
+      }
     }
     h <- graphics::hist(allData[allData < xmax], plot = F)
     breakD <- h$breaks[2] - h$breaks[1]
