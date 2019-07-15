@@ -232,7 +232,9 @@ Now we would like to describe which characteristics of the peaks are specific to
 For this, we will define a reference (only one experiment), and a Set which can be multiple experiments.  
 Let's first try to compare the Replicate 2 CUTnRUN with the ChIP:
 ```{r}
-e <- "ChIP____CUTnRUN_HiCa_Rep2"
+name1 <- "ChIP"
+name2 <- "CUTnRUN_HiCa_Rep2"
+e <- paste(sort(c(name1, name2)), collapse = "____")
 ```
 We define the Ref:
 ```{r}
@@ -296,7 +298,8 @@ When you specify the experiment e, everything except the Ref will be considered 
 For example, we will now compare the ChIP to both replicates of CUT&RUN:
 ```{r}
 par(cex = 0.6)
-e <- "ChIP____CUTnRUN_HiCa_Rep1____CUTnRUN_HiCa_Rep2"
+e <- names(mySamplesToCheckList)[3]
+print(e)
 # We keep the reference and the annotations:
 myList <- createMyGRs(e = e, ovF = ovF, allExpe, grLScores = mygrLScores,
                       grLDistance = mygrDistance,
