@@ -1,6 +1,8 @@
 ---
 title: "getting-started-with-analysePeaks"
-output: rmarkdown::html_vignette
+output: 
+  rmarkdown::html_vignette:
+    toc: true
 vignette: >
   %\VignetteIndexEntry{getting-started-with-analysePeaks}
   %\VignetteEngine{knitr::rmarkdown}
@@ -36,7 +38,7 @@ safelyLoadAPackageInCRANorBioconductor("eulerr")
 ## Convert my bed/narrowPeaks in GenomicRanges
 For this example, small files with only chr22 have been generated and they are stored in your installed directory.
 ```{r}
-inputFolder <- system.file("chr22/", package = "usefulLDfunctionsGR")
+inputFolder <- system.file("chr22/", package = "analysePeaks")
 ```
 Usually I work with numbered chromosomes and the chrX (even if you have less than 22 chromosomes, for example, for mouse you can keep the line) but here we will work only with chr22:
 ```{r}
@@ -46,8 +48,12 @@ myChr <- "chr22"
 
 ### First the peaks files:
 ```{r}
-allExpeFilesNames <- c("ChIP_macs_default_peaks_chr22.narrowPeak.gz", "HiCa_pAG_Rep1_macs_likeATAC_withIgG_peaks_chr22.narrowPeak.gz", "HiCa_pAG_Rep2_macs_likeATAC_withIgG_peaks_chr22.narrowPeak.gz")
-names(allExpeFilesNames) <- c("ChIP", "CUTnRUN_HiCa_Rep1", "CUTnRUN_HiCa_Rep2")
+allExpeFilesNames <- c("ChIP_macs_default_peaks_chr22.narrowPeak.gz",
+                       "HiCa_pAG_Rep1_macs_likeATAC_withIgG_peaks_chr22.narrowPeak.gz", 
+                       "HiCa_pAG_Rep2_macs_likeATAC_withIgG_peaks_chr22.narrowPeak.gz")
+names(allExpeFilesNames) <- c("ChIP",
+                              "CUTnRUN_HiCa_Rep1",
+                              "CUTnRUN_HiCa_Rep2")
 allExpeFilesPath <- sapply(allExpeFilesNames, function(fn){file.path(inputFolder, fn)})
 ```
 I will convert them to GenomicRanges and put it into the list `allExpe`
@@ -63,15 +69,19 @@ allExpe <- lapply(allExpeFilesPath, function(fn){
 ### Now, the annotations
 I chose, a gtf file to see the correlation with TSS, the fimo output which gives me the putative CTCF binding sites based on the jaspar matrix of motif, and the DNAse peaks provided by ENCODE.
 ```{r}
-allAnnotationFilesNames <- c("Homo_sapiens.GRCh37.87_chr22_exons.gtf.gz", "fimo_hg19_CTCF_jaspar_chr22.bed.gz", "GSM816655_hg19_wgEncodeOpenChromDnaseK562PkV2_chr22.narrowPeak.gz")
-names(allAnnotationFilesNames) <- c("TSS", "CTCFmotif", "DNase")
+allAnnotationFilesNames <- c("Homo_sapiens.GRCh37.87_chr22_exons.gtf.gz",
+                             "fimo_hg19_CTCF_jaspar_chr22.bed.gz",
+                             "GSM816655_hg19_wgEncodeOpenChromDnaseK562PkV2_chr22.narrowPeak.gz")
+names(allAnnotationFilesNames) <- c("Genes",
+                                    "CTCFmotif",
+                                    "DNase")
 allAnnotationFilesPath <- sapply(allAnnotationFilesNames, function(fn){file.path(inputFolder, fn)})
 
 ```
 I will convert them to GenomicRanges and put it into the list `allAnnot`
 ```{r}
 allAnnot <-list()
-allAnnot[["TSS"]] <- getTSSinUCSCFormatFromEnsemblGTF(allAnnotationFilesPath[["TSS"]])
+allAnnot[["TSS"]] <- getTSSinUCSCFormatFromEnsemblGTF(allAnnotationFilesPath[["Genes"]])
 allAnnot[["CTCFmotif"]] <- import.bed(allAnnotationFilesPath[["CTCFmotif"]])
 allAnnot[["DNase"]] <- grSortedSimplifiedFromNarrowPeak(allAnnotationFilesPath[["DNase"]])
 allAnnot <- lapply(allAnnot, function(gr){
