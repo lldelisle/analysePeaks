@@ -4,16 +4,16 @@ output:
   rmarkdown::html_vignette:
     toc: true
 vignette: >
-  %\VignetteIndexEntry{getting-started-with-analysePeaks}
+%\VignetteIndexEntry{getting-started-with-analysePeaks}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
----
-# When do I use this package?
-I developed this package when I wanted to compare two protocols to identify binding of a protein. In my case, ChIP-seq and CUT&RUN. I wanted to be able to characterize the peaks which were only identified in one of the two experiments.
-
-# An example step-by-step
-## Install and load the packages
-```{r, warning = FALSE, message = FALSE}
+  ---
+  # When do I use this package?
+  I developed this package when I wanted to compare two protocols to identify binding of a protein. In my case, ChIP-seq and CUT&RUN. I wanted to be able to characterize the peaks which were only identified in one of the two experiments.
+  
+  # An example step-by-step
+  ## Install and load the packages
+  ```{r, warning = FALSE, message = FALSE}
 # Necessary to install/run analysePeak
 if (!"devtools" %in% installed.packages()){
 install.packages("devtools", repos = "https://stat.ethz.ch/CRAN/")
@@ -116,6 +116,10 @@ for (samplesToCheck in mySamplesToCheckList){
     }
   }
 }
+names(mySamplesToCheckList) <- sapply(mySamplesToCheckList,
+                                      function(samplesToCheck){
+                                        paste(sort(samplesToCheck), collapse = "____")
+                                      })
 message(names(ovF))
 ```
 
@@ -126,8 +130,7 @@ Here I generated Euler and Venn diagrams for only few of the comparisons but you
 samplesColor <- rainbow(length(allExpe) + 2)[2:(length(allExpe) + 1)]
 names(samplesColor) <- names(allExpe)
 for (e in intersect(names(ovF), 
-                    c("CUTnRUN_HiCa_Rep1____CUTnRUN_HiCa_Rep2",
-                      "ChIP____CUTnRUN_HiCa_Rep1____CUTnRUN_HiCa_Rep2"))){
+                    names(mySamplesToCheckList)[1:2])){
   temp.df <- ovF[[e]]
   n <- ncol(temp.df)
   listForEulerr <- list()
@@ -156,8 +159,7 @@ for (e in intersect(names(ovF),
 Plotting the UpSet representation for the same overlaps:
 ```{r}
 for (e in intersect(names(ovF), 
-                    c("CUTnRUN_HiCa_Rep1____CUTnRUN_HiCa_Rep2",
-                      "ChIP____CUTnRUN_HiCa_Rep1____CUTnRUN_HiCa_Rep2"))){
+                    names(mySamplesToCheckList)[1:2])){
   temp.df <- ovF[[e]]
   n <- ncol(temp.df)
   listForEulerr <- list()
@@ -183,8 +185,13 @@ name2 <- "CUTnRUN_HiCa_Rep2"
 # To have shorter titles and legend we will rename them to Rep1 and Rep2:
 newName1 <- "Rep1"
 newName2 <- "Rep2"
-ovF[[paste(newName1, newName2, sep = "____")]] <- ovF[[paste(name1, name2, sep = "____")]]
-colnames(ovF[[paste(newName1, newName2, sep = "____")]]) <- c(newName1, newName2)
+e <- paste(sort(c(name1, name2)), collapse = "____")
+newE <- paste(sort(c(newName1, newName2)), collapse = "____")
+ovF[[newE]] <- ovF[[e]]
+newColNames <- colnames(ovF[[e]])
+newColNames[newColNames == name1] <- newName1
+newColNames[newColNames == name2] <- newName2
+colnames(ovF[[newE]]) <- newColNames
 allExpe[[newName1]] <- allExpe[[name1]]
 allExpe[[newName2]] <- allExpe[[name2]]
 plotPairwiseComparison(newName1, newName2, ovF, allExpe, step = 200, fontsize = 6)
@@ -200,6 +207,13 @@ name2 <- "CUTnRUN_HiCa_Rep2"
 # To have shorter titles and legend we will rename them to Rep1 and Rep2:
 newName1 <- "ChIP"
 newName2 <- "Rep2"
+e <- paste(sort(c(name1, name2)), collapse = "____")
+newE <- paste(sort(c(newName1, newName2)), collapse = "____")
+ovF[[newE]] <- ovF[[e]]
+newColNames <- colnames(ovF[[e]])
+newColNames[newColNames == name1] <- newName1
+newColNames[newColNames == name2] <- newName2
+colnames(ovF[[newE]]) <- newColNames
 ovF[[paste(newName1, newName2, sep = "____")]] <- ovF[[paste(name1, name2, sep = "____")]]
 colnames(ovF[[paste(newName1, newName2, sep = "____")]]) <- c(newName1, newName2)
 allExpe[[newName1]] <- allExpe[[name1]]
@@ -328,7 +342,7 @@ The CUT&RUN dataset were the one from the publication [Improved CUT&RUN chromati
 inputOfMacs=GSM3609748_K562_CTCF_pAG_hi-Ca_27m_Rep1.hg19.bed.gz
 inputBedForC=GSM3609773_K562_IgG_hi-Ca.hg19.bed.gz
 for inBED in $inputOfMacs $inputBedForC; do
-		zcat ${pathForInput}$inBED | awk '{if($0!=prevLine){printf("%s\t%d\t%d\t%s\t%d\t%s\n",$1,$2,$2+10,"R1_"NR,0,"+");printf("%s\t%d\t%d\t%s\t%d\t%s\n",$1,$3-10,$3,"R2_"NR,0,"-");prevLine=$0}}' | gzip > ${inBED}_split.bed.gz
+zcat ${pathForInput}$inBED | awk '{if($0!=prevLine){printf("%s\t%d\t%d\t%s\t%d\t%s\n",$1,$2,$2+10,"R1_"NR,0,"+");printf("%s\t%d\t%d\t%s\t%d\t%s\n",$1,$3-10,$3,"R2_"NR,0,"-");prevLine=$0}}' | gzip > ${inBED}_split.bed.gz
 done
 macs2 callpeak -t ${inputOfMacs}_split.bed.gz -c ${inputBedForC}_split.bed.gz --nomodel --keep-dup all --shift -100 --extsize 200 -n ${sample}_macs_likeATAC_withIgG --call-summits -B -f BED 2> ${pathResults}${sample}_macs_likeATAC_withIgG.log
 ```
