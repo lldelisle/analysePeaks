@@ -456,10 +456,11 @@ plotAllPheatmapsFor2CategoriesFromMyGR <- function(myGRs, nameOfColWithCate1,
 #' As well as when it is in Set and in the Set but not in the Reference and vice-versa
 #'
 #' @param myGRAndAttributes Should be the output of \link[analysePeaks]{annotateWithCate}
+#' @param fontsize base fontsize for the heatmaps (default is 10)
 #' @return Plot barplots and pheatmaps but do not return anything
 #' @importFrom GenomicRanges mcols
 #' @export
-plotCateComparisonSetAndRef <- function(myGRAndAttributes){
+plotCateComparisonSetAndRef <- function(myGRAndAttributes, fontsize = 10){
   allCates <- myGRAndAttributes[["allCates"]]
   myGRs <- myGRAndAttributes[["myGRs"]]
   for (i in 1:length(allCates)){
@@ -485,7 +486,8 @@ plotCateComparisonSetAndRef <- function(myGRAndAttributes){
                                              allCates[[j]][["cateNames"]],
                                              allCates[[j]][["what"]],
                                              myGRAndAttributes[["stringSet"]],
-                                             myGRAndAttributes[["nameOfRef"]])
+                                             myGRAndAttributes[["nameOfRef"]],
+                                             fontsize = fontsize)
     }
   }
 }
