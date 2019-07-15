@@ -12,11 +12,23 @@ if (!"devtools" %in% installed.packages()){
     install.packages("devtools", repos = "https://stat.ethz.ch/CRAN/")
 }
 devtools::install_github("lldelisle/analysePeaks")
+# Or
+devtools::install_github("lldelisle/analysePeaks", build_vignettes = TRUE)
+# If you want to have the tutorial
 ```
 
 ## Tutorial
 A vignette for this package have been written.
-If you want 
+To see it, you need to run:
+```
+vignette("getting-started-with-analysePeaks")
+```
+If you get the message: `vignette ‘getting-started-with-analysePeaks’ not found`. You need to reinstall the package with the vignette:
+```
+devtools::install_github("lldelisle/analysePeaks", build_vignettes = TRUE, force = TRUE)
+```
+
+
 
 ## Installation of dependencies
 usefulLDfunctions is another R package I wrote which is on github too. So to install it:
