@@ -116,6 +116,7 @@ for (samplesToCheck in mySamplesToCheckList){
     }
   }
 }
+message(names(ovF))
 ```
 
 ## Display the overlaps:
