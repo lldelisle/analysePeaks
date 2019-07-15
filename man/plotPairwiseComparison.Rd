@@ -4,7 +4,8 @@
 \alias{plotPairwiseComparison}
 \title{Plot different plots to illustrate a comparison between 2 overlaps}
 \usage{
-plotPairwiseComparison(name1, name2, ovF, allExpe, step = 5000)
+plotPairwiseComparison(name1, name2, ovF, allExpe, step = 5000,
+  fontsize = 10)
 }
 \arguments{
 \item{name1}{the name of the first experiment to use}
@@ -16,6 +17,8 @@ plotPairwiseComparison(name1, name2, ovF, allExpe, step = 5000)
 \item{allExpe}{a GRanges list with at least name1 and name2 items with a dataframe with a column called score}
 
 \item{step}{a integer which will be used to bin the items of name1 or name2 into categories (default is 5000).}
+
+\item{fontsize}{base fontsize for the heatmaps (default is 10)}
 }
 \value{
 Will do a lot of plots but do not return anything.

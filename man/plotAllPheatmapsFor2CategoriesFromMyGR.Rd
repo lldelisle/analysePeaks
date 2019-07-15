@@ -6,7 +6,7 @@
 \usage{
 plotAllPheatmapsFor2CategoriesFromMyGR(myGRs, nameOfColWithCate1,
   cateNames1, what1, nameOfColWithCate2, cateNames2, what2, stringSet,
-  nameOfRef)
+  nameOfRef, fontsize = 10)
 }
 \arguments{
 \item{myGRs}{a GRangeList of 2 elements which are the set and the ref and should have 2 meta columns `nameOfColWithCate1` and `nameOfColWithCate2`}
@@ -26,6 +26,8 @@ plotAllPheatmapsFor2CategoriesFromMyGR(myGRs, nameOfColWithCate1,
 \item{stringSet}{the name of the set for the second feature}
 
 \item{nameOfRef}{the name of the reference}
+
+\item{fontsize}{base fontsize for the heatmaps (default is 10)}
 }
 \value{
 Plot but do not return anything

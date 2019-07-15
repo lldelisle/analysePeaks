@@ -76,6 +76,7 @@ barplotFromNamedVector <- function(data, colorsForGraphs = NULL,
 #' @param ovF the list with at least the filtered overlap for name1 and name2
 #' @param allExpe a GRanges list with at least name1 and name2 items with a dataframe with a column called score
 #' @param step a integer which will be used to bin the items of name1 or name2 into categories (default is 5000).
+#' @param fontsize base fontsize for the heatmaps (default is 10)
 #' @return Will do a lot of plots but do not return anything.
 #' @details `ovF` can be obtained by putting into a list the result of \link[usefulLDfunctionsGR]{filterByScore},
 #' The name of the item in the list should be name1____name2
@@ -84,7 +85,7 @@ barplotFromNamedVector <- function(data, colorsForGraphs = NULL,
 #' @importFrom grDevices rainbow rgb
 #' @importFrom graphics plot
 #' @export
-plotPairwiseComparison <- function(name1, name2, ovF, allExpe, step = 5000){
+plotPairwiseComparison <- function(name1, name2, ovF, allExpe, step = 5000, fontsize = 10){
   # e is the name of the experiment
   e <- paste(sort(c(name1, name2)), collapse = "____")
   # temp.df contains the filtered overlap between name1 and name2
@@ -142,11 +143,13 @@ plotPairwiseComparison <- function(name1, name2, ovF, allExpe, step = 5000){
   pheatmap::pheatmap(t(tWithNames), cluster_cols = F, cluster_rows = F,
                      display_numbers = T, number_format = "%d",
                      main = paste0("correlation between the ranking of\n",
-                                   name1, " and ", name2))
+                                   name1, " and ", name2),
+                     fontsize = fontsize)
   pheatmap::pheatmap(tWithNames, cluster_cols = F, cluster_rows = F,
                      display_numbers = T, number_format = "%d",
                      main = paste0("correlation between the ranking of\n",
-                                   name1, " and ", name2))
+                                   name1, " and ", name2),
+                     fontsize = fontsize)
   # We will now plot the correlation without binning
   temp.dfNoNA <- temp.df
   for (c in colnames(temp.dfNoNA)){
@@ -379,6 +382,7 @@ plotAllBarPlotForCategoriesFromMyGR <- function(myGRs, nameOfColWithCate,
 #' @param stringSet the name of the set for the second feature
 #' @param what2 the name of the second measure
 #' @param nameOfRef the name of the reference
+#' @param fontsize base fontsize for the heatmaps (default is 10)
 #' @return Plot but do not return anything
 #' @importFrom pheatmap pheatmap
 #' @export
@@ -387,7 +391,8 @@ plotAllPheatmapsFor2CategoriesFromMyGR <- function(myGRs, nameOfColWithCate1,
                                                    nameOfColWithCate2,
                                                    cateNames2,
                                                    what2,
-                                                   stringSet, nameOfRef){
+                                                   stringSet, nameOfRef,
+                                                   fontsize = 10){
   if (length(myGRs) < 2){
     stop("Wrong myGRs\n")
   }
@@ -440,7 +445,8 @@ plotAllPheatmapsFor2CategoriesFromMyGR <- function(myGRs, nameOfColWithCate1,
     pheatmap::pheatmap(t1, cluster_rows = F, cluster_cols = F,
                        main = paste0(inputsGRWhat[[i]], "\n", sum(t1),
                                      " peaks\n", what1, " vs ", what2,
-                                     "\nset:", stringSet, "\nref:", nameOfRef))
+                                     "\nset:", stringSet, "\nref:", nameOfRef),
+                       fontsize = fontsize)
   }
 }
 
