@@ -4,16 +4,17 @@ output:
   rmarkdown::html_vignette:
     toc: true
 vignette: >
-%\VignetteIndexEntry{getting-started-with-analysePeaks}
+  %\VignetteIndexEntry{getting-started-with-analysePeaks}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
-  ---
-  # When do I use this package?
-  I developed this package when I wanted to compare two protocols to identify binding of a protein. In my case, ChIP-seq and CUT&RUN. I wanted to be able to characterize the peaks which were only identified in one of the two experiments.
+---
+
+# When do I use this package?
+I developed this package when I wanted to compare two protocols to identify binding of a protein. In my case, ChIP-seq and CUT&RUN. I wanted to be able to characterize the peaks which were only identified in one of the two experiments.
   
-  # An example step-by-step
-  ## Install and load the packages
-  ```{r, warning = FALSE, message = FALSE}
+# An example step-by-step
+## Install and load the packages
+```{r, warning = FALSE, message = FALSE}
 # Necessary to install/run analysePeak
 if (!"devtools" %in% installed.packages()){
 install.packages("devtools", repos = "https://stat.ethz.ch/CRAN/")
@@ -120,7 +121,6 @@ names(mySamplesToCheckList) <- sapply(mySamplesToCheckList,
                                       function(samplesToCheck){
                                         paste(sort(samplesToCheck), collapse = "____")
                                       })
-message(names(ovF))
 ```
 
 ## Display the overlaps:
@@ -186,10 +186,7 @@ name2 <- "CUTnRUN_HiCa_Rep2"
 newName1 <- "Rep1"
 newName2 <- "Rep2"
 e <- paste(sort(c(name1, name2)), collapse = "____")
-message(e)
 newE <- paste(sort(c(newName1, newName2)), collapse = "____")
-message(newE)
-message(dim(ovF[[e]]))
 ovF[[newE]] <- ovF[[e]]
 newColNames <- colnames(ovF[[e]])
 newColNames[newColNames == name1] <- newName1
@@ -211,10 +208,7 @@ name2 <- "CUTnRUN_HiCa_Rep2"
 newName1 <- "ChIP"
 newName2 <- "Rep2"
 e <- paste(sort(c(name1, name2)), collapse = "____")
-message(e)
 newE <- paste(sort(c(newName1, newName2)), collapse = "____")
-message(newE)
-message(dim(ovF[[e]]))
 ovF[[newE]] <- ovF[[e]]
 newColNames <- colnames(ovF[[e]])
 newColNames[newColNames == name1] <- newName1
