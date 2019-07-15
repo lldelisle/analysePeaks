@@ -1,0 +1,347 @@
+---
+title: "getting-started-with-analysePeaks"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{getting-started-with-analysePeaks}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+# When do I use this package?
+I developed this package when I wanted to compare two protocols to identify binding of a protein. In my case, ChIP-seq and CUT&RUN. I wanted to be able to characterize the peaks which were only identified in one of the two experiments.
+
+# An example step-by-step
+## Install and load the packages
+```{r, warning = FALSE, message = FALSE}
+# Necessary to install/run analysePeak
+if (!"devtools" %in% installed.packages()){
+install.packages("devtools", repos = "https://stat.ethz.ch/CRAN/")
+}
+devtools::install_github("lldelisle/usefulLDfunctions")
+library(usefulLDfunctions)
+safelyLoadAPackageInCRANorBioconductor("GenomicRanges")
+safelyLoadAPackageInCRANorBioconductor("rtracklayer")
+safelyLoadAPackageInCRANorBioconductor("combinat")
+devtools::install_github("lldelisle/usefulLDfunctionsGR")
+library(usefulLDfunctionsGR)
+safelyLoadAPackageInCRANorBioconductor("reshape")
+safelyLoadAPackageInCRANorBioconductor("pheatmap")
+devtools::install_github("lldelisle/analysePeaks")
+library(analysePeaks)
+# Will be used in this tutorial to display overlaps
+safelyLoadAPackageInCRANorBioconductor("UpSetR")
+safelyLoadAPackageInCRANorBioconductor("eulerr")
+
+```
+
+## Convert my bed/narrowPeaks in GenomicRanges
+For this example, small files with only chr22 have been generated and they are stored in your installed directory.
+```{r}
+inputFolder <- system.file("chr22/", package = "usefulLDfunctionsGR")
+```
+Usually I work with numbered chromosomes and the chrX (even if you have less than 22 chromosomes, for example, for mouse you can keep the line) but here we will work only with chr22:
+```{r}
+# myChr <- paste0("chr", c(1:22, "X"))
+myChr <- "chr22"
+```
+
+### First the peaks files:
+```{r}
+allExpeFilesNames <- c("ChIP_macs_default_peaks_chr22.narrowPeak.gz", "HiCa_pAG_Rep1_macs_likeATAC_withIgG_peaks_chr22.narrowPeak.gz", "HiCa_pAG_Rep2_macs_likeATAC_withIgG_peaks_chr22.narrowPeak.gz")
+names(allExpeFilesNames) <- c("ChIP", "CUTnRUN_HiCa_Rep1", "CUTnRUN_HiCa_Rep2")
+allExpeFilesPath <- sapply(allExpeFilesNames, function(fn){file.path(inputFolder, fn)})
+```
+I will convert them to GenomicRanges and put it into the list `allExpe`
+```{r}
+allExpe <- lapply(allExpeFilesPath, function(fn){
+  gr <- grSortedSimplifiedFromNarrowPeak(fn)
+  gr <- subset(gr, seqnames %in% myChr)
+  seqlevels(gr) <- myChr
+  return(gr)
+})
+```
+
+### Now, the annotations
+I chose, a gtf file to see the correlation with TSS, the fimo output which gives me the putative CTCF binding sites based on the jaspar matrix of motif, and the DNAse peaks provided by ENCODE.
+```{r}
+allAnnotationFilesNames <- c("Homo_sapiens.GRCh37.87_chr22_exons.gtf.gz", "fimo_hg19_CTCF_jaspar_chr22.bed.gz", "GSM816655_hg19_wgEncodeOpenChromDnaseK562PkV2_chr22.narrowPeak.gz")
+names(allAnnotationFilesNames) <- c("TSS", "CTCFmotif", "DNase")
+allAnnotationFilesPath <- sapply(allAnnotationFilesNames, function(fn){file.path(inputFolder, fn)})
+
+```
+I will convert them to GenomicRanges and put it into the list `allAnnot`
+```{r}
+allAnnot <-list()
+allAnnot[["TSS"]] <- getTSSinUCSCFormatFromEnsemblGTF(allAnnotationFilesPath[["TSS"]])
+allAnnot[["CTCFmotif"]] <- import.bed(allAnnotationFilesPath[["CTCFmotif"]])
+allAnnot[["DNase"]] <- grSortedSimplifiedFromNarrowPeak(allAnnotationFilesPath[["DNase"]])
+allAnnot <- lapply(allAnnot, function(gr){
+  gr <- subset(gr, seqnames %in% myChr)
+  seqlevels(gr) <- myChr
+  return(gr)
+})
+```
+
+## Evaluate all useful and interesting overlaps
+The function `findAllOverlap` will generate all pairwise comparisons and will merge them using all possible permutations. This operation may be very long when you have more than 5 experiments to overlap because you have 24 possible permutations and 120 permutations if you have 6...
+Then, to end up with a dataframe which will represent the overlaps where each peak is present only once, you use `filterByScore`. This will use the sum of the scores of each peak present in the overlap to choose the overlaps to keep.
+The filtered dataframe is stored in ovF with the name of the samples separated by `____`.
+```{r, message=FALSE}
+mySamplesToCheckList <- list(c("CUTnRUN_HiCa_Rep1", "CUTnRUN_HiCa_Rep2"),
+                             c("ChIP", "CUTnRUN_HiCa_Rep2"),
+                             c("ChIP", "CUTnRUN_HiCa_Rep1", "CUTnRUN_HiCa_Rep2"))
+ovAll <- list()
+ovF <- list()
+for (samplesToCheck in mySamplesToCheckList){
+  if (length(samplesToCheck) > 1){
+    nameOfComp <- paste(sort(samplesToCheck), collapse = "____")
+    if (!nameOfComp %in% names(ovF)){
+      newOvAdded <- T
+      compGR <- subsetByNamesOrIndices(allExpe, samplesToCheck)
+      ovAll <- findAllOverlap(compGR,
+                              verbose = T,
+                              allMergedCalculated = ovAll,
+                              returnAllMergedCalculated = T)
+      ovF[[nameOfComp]] <- filterByScore(compGR,
+                                         mAll = ovAll[[nameOfComp]])
+    }
+  }
+}
+```
+
+## Display the overlaps:
+### Euler and Venn
+Here I generated Euler and Venn diagrams for only few of the comparisons but you could do for all of them.
+```{r}
+samplesColor <- rainbow(length(allExpe) + 2)[2:(length(allExpe) + 1)]
+names(samplesColor) <- names(allExpe)
+for (e in intersect(names(ovF), 
+                    c("CUTnRUN_HiCa_Rep1____CUTnRUN_HiCa_Rep2",
+                      "ChIP____CUTnRUN_HiCa_Rep1____CUTnRUN_HiCa_Rep2"))){
+  temp.df <- ovF[[e]]
+  n <- ncol(temp.df)
+  listForEulerr <- list()
+  for (i in 1:n){
+    listForEulerr <- c(listForEulerr, list(which(!is.na(temp.df[, i]))))
+  }
+  names(listForEulerr) <- colnames(temp.df)
+  fitOfEulerr <- euler(listForEulerr, shape = "ellipse")
+  fillCol <- samplesColor[colnames(temp.df)]
+  print(plot(fitOfEulerr,
+             main = "Euler diagram",
+             fills = list(fill = fillCol, alpha = 0.5),
+             legend = list(alpha = 1, cex = 0.5), labels = F,
+             quantities = list(cex = 0.5)))
+  vennForTheSame <- venn(listForEulerr)
+  print(plot(vennForTheSame,
+             main = "Venn diagram",
+             fills = list(fill = fillCol, alpha = 0.5),
+             legend = list(alpha = 1, cex = 0.5), labels = F,
+             quantities = list(cex = 0.5)))
+}
+
+```
+
+### UpSet
+Plotting the UpSet representation for the same overlaps:
+```{r}
+for (e in intersect(names(ovF), 
+                    c("CUTnRUN_HiCa_Rep1____CUTnRUN_HiCa_Rep2",
+                      "ChIP____CUTnRUN_HiCa_Rep1____CUTnRUN_HiCa_Rep2"))){
+  temp.df <- ovF[[e]]
+  n <- ncol(temp.df)
+  listForEulerr <- list()
+  for (i in 1:n){
+    listForEulerr <- c(listForEulerr,
+                       list(which(!is.na(temp.df[, i]))))
+  }
+  names(listForEulerr) <- colnames(temp.df)
+  print(upset(fromList(listForEulerr), order.by = "freq",
+              number.angles = 30,
+              mainbar.y.label = "Peak intersections",
+              sets.x.label = "Peak per experiment",
+              text.scale = 0.7))
+}
+```
+
+## Generate some plots for pairwise comparison based on the score rank
+The plots for pairwise comparison will assess how well the order (by decreasing score) is conserved between the 2 experiments:
+```{r}
+par(cex = 0.6)
+name1 <- "CUTnRUN_HiCa_Rep1"
+name2 <- "CUTnRUN_HiCa_Rep2"
+# To have shorter titles and legend we will rename them to Rep1 and Rep2:
+newName1 <- "Rep1"
+newName2 <- "Rep2"
+ovF[[paste(newName1, newName2, sep = "____")]] <- ovF[[paste(name1, name2, sep = "____")]]
+colnames(ovF[[paste(newName1, newName2, sep = "____")]]) <- c(newName1, newName2)
+allExpe[[newName1]] <- allExpe[[name1]]
+allExpe[[newName2]] <- allExpe[[name2]]
+plotPairwiseComparison(newName1, newName2, ovF, allExpe, step = 200, fontsize = 6)
+```
+
+We can see that the replicates are highly correlated, the maximum of overlap is obtained for the top 400 peaks.
+
+Let see how the Replicate 2 correlates with the ChIP:
+```{r}
+par(cex = 0.6)
+name1 <- "ChIP"
+name2 <- "CUTnRUN_HiCa_Rep2"
+# To have shorter titles and legend we will rename them to Rep1 and Rep2:
+newName1 <- "ChIP"
+newName2 <- "Rep2"
+ovF[[paste(newName1, newName2, sep = "____")]] <- ovF[[paste(name1, name2, sep = "____")]]
+colnames(ovF[[paste(newName1, newName2, sep = "____")]]) <- c(newName1, newName2)
+allExpe[[newName1]] <- allExpe[[name1]]
+allExpe[[newName2]] <- allExpe[[name2]]
+plotPairwiseComparison(newName1, newName2, ovF, allExpe, step = 200, fontsize = 6)
+```
+
+We can see that the correlation is highly decreased, one reason is that there is a decreased proportion but even in the overlap, the order is not very well conserved.
+
+## Generate plots for Set vs Ref comparison
+Now we would like to describe which characteristics of the peaks are specific to one technique or the other.  
+For this, we will define a reference (only one experiment), and a Set which can be multiple experiments.  
+Let's first try to compare the Replicate 2 CUTnRUN with the ChIP:
+```{r}
+e <- "ChIP____CUTnRUN_HiCa_Rep2"
+```
+We define the Ref:
+```{r}
+myRefName <- "ChIP"
+```
+The annotations are of 2 categories:
+
+* The one where the highest score overlapping the peak matters.
+
+* The other where the distance to the peak matters.  
+
+The motif and the DNase are in the first category, wherease the TSS is in the other one.
+```{r}
+mygrLScores <- subsetByNamesOrIndices(allAnnot, c("CTCFmotif", "DNase"))
+mygrDistance <- subsetByNamesOrIndices(allAnnot, c("TSS"))
+```
+
+We will now annotate the peaks with the annotations:
+```{r}
+myList <- createMyGRs(e = e, ovF = ovF, allExpe, grLScores = mygrLScores,
+                      grLDistance = mygrDistance,
+                      nameOfRef = myRefName)
+```
+We will visualise the values of the annotations to set-up categories:
+```{r}
+par(cex = 0.6)
+plotClassicalHistogramForMyGRs(myList)
+```
+
+We can conclude from these histograms that 
+
+* the CTCF motif scores in the peaks which are specific to only one experiment are decreased.
+
+* the peaks which are specific to the ChIP method are less open (the score of DNase is decreased).
+
+* the peaks which are specific to the CUT&RUN method are slightly more often found at TSS.
+
+To help compare, we define the thresholds which will define the categories:
+```{r}
+mythresholdsForgrLScores = list("CTCFmotif" = c(20,10,0), "DNase" = c(900,600,500,0))
+mythresholdsForgrLDistance = list("TSS" = c(20e3,5e3,1e3,0))
+```
+We now assign each peak to a category:
+```{r}
+myList2<- annotateWithCate(myList,
+                           mythresholdsForgrLScores,
+                           mythresholdsForgrLDistance)
+```
+And plot histograms for each category as well as heatmaps for pairs of categories:
+```{r}
+par(cex = 0.6)
+plotCateComparisonSetAndRef(myList2, fontsize = 6) 
+```
+
+The barplots confirm what was shown with histograms but help with the quantification. For example, it shows that the proportion of CUT&RUN peaks with no CTCF motif increase from 10% in the peaks shared with ChIP to 80%. The increase in the ChIP between shared with CUT&RUN and specific is only from 20 to 25%.
+
+The heatmap are really interesting because they better qualify. Most of the peaks which are specific to CUT&RUN tend to have no CTCF binding motif and are either at TSS with high DNase score or with no DNase between 1kb and 20kb of any TSS.
+
+Here is a comparison where the Set was only one so the notion of specific and shared is quite easy. When the Set is composed of multiple experiments, first the Set peaks are the peaks which are shared between all experiments of the Set. Then, what is specific to the set is quite straight forward (shared between all Set members and shared by the Ref). What is specific to the Ref is defined as not shared by any of the Set members.
+When you specify the experiment e, everything except the Ref will be considered as the Set.
+For example, we will now compare the ChIP to both replicates of CUT&RUN:
+```{r}
+par(cex = 0.6)
+e <- "ChIP____CUTnRUN_HiCa_Rep1____CUTnRUN_HiCa_Rep2"
+# We keep the reference and the annotations:
+myList <- createMyGRs(e = e, ovF = ovF, allExpe, grLScores = mygrLScores,
+                      grLDistance = mygrDistance,
+                      nameOfRef = myRefName)
+plotClassicalHistogramForMyGRs(myList)
+
+```
+We still have the same conclusions when we merge the two replicates.
+```{r}
+par(cex = 0.6)
+# We keep the thresholds:
+myList2<- annotateWithCate(myList,
+                           mythresholdsForgrLScores,
+                           mythresholdsForgrLDistance)
+plotCateComparisonSetAndRef(myList2, fontsize = 6) 
+```
+
+## Export
+You might be interested in exporting the data you generated.  
+There are 2 functions in the package to export data:
+
+* `writeNarrowPeaksFromMyGRsAndAnnot` which will write 4 narrowPeak files from an output of createMyGRs:
+```{r,  eval=FALSE}
+writeNarrowPeaksFromMyGRsAndAnnot(myList, outputDirectory = "./")
+```
+
+* `writeTablesFromMyGRsAndAnnot` which will write 2 tables with all evaluated information for each peak from an output of createMyGRs:
+```{r,  eval=FALSE}
+writeTablesFromMyGRsAndAnnot(myList2, outputDirectory = "./")
+```
+
+
+
+# If you have issues with this package or suggestions...
+Feel free to report them on the "issues" area of GitHub [here](https://github.com/lldelisle/analysePeaks/issues) or send me an [email](mailto:lucille.delisle@epfl.ch) and I will open an issue for you.
+
+# Where does the data come from:
+## ChIP
+The ChIP dataset used is: SRR299298  
+The bam was downloaded from the GEO [webpage](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSM749690) and peaks were called with macs2:
+```{bash, eval=FALSE}
+macs2 callpeak -t GSM749690_hg19_wgEncodeUwTfbsK562CtcfStdAlnRep1.bam -n ChIP_macs_default --call-summits -B -f BAM 2> ChIP_macs_default.log
+```
+## CUT&RUN
+The CUT&RUN dataset were the one from the publication [Improved CUT&RUN chromatin profiling tools.](https://www.ncbi.nlm.nih.gov/pubmed/31232687). The bed with mapped reads were downloaded from the GEO [webpage](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSM3609748) and peaks were called with macs2 using the IgG experiment also available on [GEO](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSM3609773):
+```{bash, eval=FALSE}
+inputOfMacs=GSM3609748_K562_CTCF_pAG_hi-Ca_27m_Rep1.hg19.bed.gz
+inputBedForC=GSM3609773_K562_IgG_hi-Ca.hg19.bed.gz
+for inBED in $inputOfMacs $inputBedForC; do
+		zcat ${pathForInput}$inBED | awk '{if($0!=prevLine){printf("%s\t%d\t%d\t%s\t%d\t%s\n",$1,$2,$2+10,"R1_"NR,0,"+");printf("%s\t%d\t%d\t%s\t%d\t%s\n",$1,$3-10,$3,"R2_"NR,0,"-");prevLine=$0}}' | gzip > ${inBED}_split.bed.gz
+done
+macs2 callpeak -t ${inputOfMacs}_split.bed.gz -c ${inputBedForC}_split.bed.gz --nomodel --keep-dup all --shift -100 --extsize 200 -n ${sample}_macs_likeATAC_withIgG --call-summits -B -f BED 2> ${pathResults}${sample}_macs_likeATAC_withIgG.log
+```
+
+Then all peaks were restricted to chr22 for the purpose of the vignette:
+```{bash, eval=FALSE}
+for f in *.narrowPeak; do name=`basename $f .narrowPeak` ; cat $f | awk '$1=="chr22"{print}' | gzip > chr22/${name}_chr22.narrowPeak.gz; done
+```
+
+## GTF
+The GTF was downloaded from Ensembl [FTP](ftp://ftp.ensembl.org/pub/release-87/gtf/homo_sapiens/Homo_sapiens.GRCh38.87.gtf.gz) this is not the last version as it needed to be compatible with hg19.  
+Then only chr22 and first exon were selected:  
+`zcat Homo_sapiens.GRCh37.87.gtf.gz | awk '$1=="22" && $3 == "exon" {print}' | grep "exon_number \"1\"" | gzip > chr22/Homo_sapiens.GRCh37.87_chr22_firstexons.gtf.gz`
+
+## DNase
+The DNase peaks were downloaded from [GEO](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSM816655) and reduced to chr22:  
+`zcat GSM816655_hg19_wgEncodeOpenChromDnaseK562PkV2.narrowPeak.gz | awk '$1=="chr22"{print}' | gzip > chr22/GSM816655_hg19_wgEncodeOpenChromDnaseK562PkV2_chr22.narrowPeak.gz`
+
+## CTCF binding motif
+The MEME matrix for CTCF motif was downloaded from [jaspar](http://jaspar2018.genereg.net/api/v1/matrix/MA0139.1.meme).
+Then FIMO was used:  
+```{bash, eval=FALSE}
+fimo --o fimo_out_CTCF --max-stored-scores 10e6 MA0139.1.meme hg19.fa
+cat fimo_out_CTCF/fimo.tsv | awk 'NR>1 && !($1~/#/) && (NF>0) {split($3,a,":|-");print a[1]"\t"a[2]+$4"\t"a[2]+$5"\t"$3"\t"$7"\t"$6}' | gzip > fimo_out_CTCF/fimo_hg19_jaspar.bed.gz
+```
+Only chr22 were kept:  
+`zcat fimo_hg19_jaspar.bed.gz | awk '$1=="chr22"{print}' | gzip > chr22/fimo_hg19_CTCF_jaspar_chr22.bed.gz`

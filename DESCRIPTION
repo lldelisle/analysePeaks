@@ -1,6 +1,6 @@
 Package: analysePeaks
 Title: Compare, annotate your peaks
-Version: 0.0.7
+Version: 0.0.8
 Authors@R: 
     person(given = "Lucille",
            family = "Lopez-Delisle",
@@ -23,4 +23,7 @@ Imports:
     pheatmap,
     reshape
 Suggests: 
-    testthat (>= 2.1.0)
+    testthat (>= 2.1.0),
+    knitr,
+    rmarkdown
+VignetteBuilder: knitr
