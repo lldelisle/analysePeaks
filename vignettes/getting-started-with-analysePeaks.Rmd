@@ -186,7 +186,10 @@ name2 <- "CUTnRUN_HiCa_Rep2"
 newName1 <- "Rep1"
 newName2 <- "Rep2"
 e <- paste(sort(c(name1, name2)), collapse = "____")
+message(e)
 newE <- paste(sort(c(newName1, newName2)), collapse = "____")
+message(newE)
+message(dim(ovF[[e]]))
 ovF[[newE]] <- ovF[[e]]
 newColNames <- colnames(ovF[[e]])
 newColNames[newColNames == name1] <- newName1
