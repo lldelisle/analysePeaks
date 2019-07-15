@@ -220,8 +220,6 @@ newColNames <- colnames(ovF[[e]])
 newColNames[newColNames == name1] <- newName1
 newColNames[newColNames == name2] <- newName2
 colnames(ovF[[newE]]) <- newColNames
-ovF[[paste(newName1, newName2, sep = "____")]] <- ovF[[paste(name1, name2, sep = "____")]]
-colnames(ovF[[paste(newName1, newName2, sep = "____")]]) <- c(newName1, newName2)
 allExpe[[newName1]] <- allExpe[[name1]]
 allExpe[[newName2]] <- allExpe[[name2]]
 plotPairwiseComparison(newName1, newName2, ovF, allExpe, step = 200, fontsize = 6)
