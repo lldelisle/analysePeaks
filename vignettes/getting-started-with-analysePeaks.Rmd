@@ -178,7 +178,7 @@ for (e in intersect(names(ovF),
 
 ## Generate some plots for pairwise comparison based on the score rank
 The plots for pairwise comparison will assess how well the order (by decreasing score) is conserved between the 2 experiments:
-```{r}
+```{r, message=FALSE}
 par(cex = 0.6)
 name1 <- "CUTnRUN_HiCa_Rep1"
 name2 <- "CUTnRUN_HiCa_Rep2"
@@ -203,7 +203,7 @@ plotPairwiseComparison(newName1, newName2, ovF, allExpe, step = 200, fontsize = 
 We can see that the replicates are highly correlated, the maximum of overlap is obtained for the top 400 peaks.
 
 Let see how the Replicate 2 correlates with the ChIP:
-```{r}
+```{r, message=FALSE}
 par(cex = 0.6)
 name1 <- "ChIP"
 name2 <- "CUTnRUN_HiCa_Rep2"
