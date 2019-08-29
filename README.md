@@ -12,9 +12,8 @@ if (!"devtools" %in% installed.packages()){
     install.packages("devtools", repos = "https://stat.ethz.ch/CRAN/")
 }
 devtools::install_github("lldelisle/analysePeaks")
-# Or
+# Or, if you want to have the tutorial:
 devtools::install_github("lldelisle/analysePeaks", build_vignettes = TRUE)
-# If you want to have the tutorial
 ```
 
 ## Tutorial
