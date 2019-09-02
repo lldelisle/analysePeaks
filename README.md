@@ -3,7 +3,7 @@ A package to compare your peaks for ChIP/CUT&amp;RUN/ATAC... between them
 This package will compare peaks (usually narrow peaks). It can be comparing replicates or comparing different techniques. Compare with peaks from another experiment. Compare to TSS, to binding motifs...
 
 ## Installation
-This package depends on grDevices, graphics, utils, usefulLDfunctions, usefulLDfunctionsGR, GenomicRanges, stats, pheatmap, reshape.
+This package depends on grDevices, graphics, utils, usefulLDfunctions, usefulLDfunctionsGR, GenomicRanges, BiocGenerics, stats, pheatmap, reshape.
 If usefulLDfunctions, and/or usefulLDfunctionsGR are not installed on your R see Installation of dependencies section.
 
 The easiest way to install analysePeaks is using devtools::install_github() from R:
@@ -12,7 +12,7 @@ if (!"devtools" %in% installed.packages()){
     install.packages("devtools", repos = "https://stat.ethz.ch/CRAN/")
 }
 devtools::install_github("lldelisle/analysePeaks")
-# Or, if you want to have the tutorial:
+# Or, if you want to have the tutorial (this :
 devtools::install_github("lldelisle/analysePeaks", build_vignettes = TRUE)
 ```
 
@@ -41,6 +41,7 @@ As the installation of Bioconductor package depends on the R version you have, I
 ```
 library(usefulLDfunctions)
 safelyLoadAPackageInCRANorBioconductor("GenomicRanges")
+safelyLoadAPackageInCRANorBioconductor("BiocGenerics")
 safelyLoadAPackageInCRANorBioconductor("rtracklayer")
 safelyLoadAPackageInCRANorBioconductor("combinat")
 ```
