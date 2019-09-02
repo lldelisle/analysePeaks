@@ -21,6 +21,7 @@ install.packages("devtools", repos = "https://stat.ethz.ch/CRAN/")
 }
 devtools::install_github("lldelisle/usefulLDfunctions")
 library(usefulLDfunctions)
+options(repos = "https://stat.ethz.ch/CRAN/")
 safelyLoadAPackageInCRANorBioconductor("GenomicRanges")
 safelyLoadAPackageInCRANorBioconductor("rtracklayer")
 safelyLoadAPackageInCRANorBioconductor("combinat")
