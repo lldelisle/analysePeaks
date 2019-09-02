@@ -12,7 +12,7 @@ if (!"devtools" %in% installed.packages()){
     install.packages("devtools", repos = "https://stat.ethz.ch/CRAN/")
 }
 devtools::install_github("lldelisle/analysePeaks")
-# Or, if you want to have the tutorial (this :
+# Or, if you want to have the tutorial (this needs knitr, see Installation of dependencies section):
 devtools::install_github("lldelisle/analysePeaks", build_vignettes = TRUE)
 ```
 
@@ -44,6 +44,7 @@ safelyLoadAPackageInCRANorBioconductor("GenomicRanges")
 safelyLoadAPackageInCRANorBioconductor("BiocGenerics")
 safelyLoadAPackageInCRANorBioconductor("rtracklayer")
 safelyLoadAPackageInCRANorBioconductor("combinat")
+safelyLoadAPackageInCRANorBioconductor("knitr")
 ```
 usefulLDfunctionsGR is another R package I wrote which is on github too. So to install it:
 ```
