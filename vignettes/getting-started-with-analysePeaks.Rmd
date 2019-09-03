@@ -11,6 +11,13 @@ vignette: >
 
 # When do I use this package?
 I developed this package when I wanted to compare two protocols to identify binding of a protein. In my case, ChIP-seq and CUT&RUN. I wanted to be able to characterize the peaks which were only identified in one of the two experiments.
+## What do I need?
+You would need:
+
+* narrow peaks for experiment you want to compare (for example, ChIP-seq and CUT&RUN narrow peaks).
+
+* some annotations you would like to correlate with the peaks (gtf if you want to compare with TSS, ATAC-seq or DNAse peaks if you want to check the accessibility, transcription factor motif binding prediction etc...).
+All these files should be in the same folder.
   
 # An example step-by-step
 ## Install and load the packages
@@ -39,54 +46,72 @@ safelyLoadAPackageInCRANorBioconductor("eulerr")
 ```
 
 ## Convert my bed/narrowPeaks in GenomicRanges
-For this example, small files with only chr22 have been generated and they are stored in your installed directory.
+For this example, small files with only chr22 have been generated and they are stored in your installed directory. If you want to run your own analysis, put here the path of the folder where are your narrowPeak files.
 ```{r}
+# inputFolder contains the path for the folder with narrowPeaks to compare
 inputFolder <- system.file("chr22/", package = "analysePeaks")
 ```
-Usually I work with numbered chromosomes and the chrX (even if you have less than 22 chromosomes, for example, for mouse you can keep the line) but here we will work only with chr22:
+Usually I work with numbered chromosomes and the chrX but here we will work only with chr22:
 ```{r}
+# myChr contains a vector with chromosomes to which I want to restrict the analysis.
 # myChr <- paste0("chr", c(1:22, "X"))
 myChr <- "chr22"
 ```
 
 ### First the peaks files:
+I first create a vector with all file names of narrowPeak to compare (no folder as it is already stored into `inputFolder`). The name of items will be a short name for each experiment.
 ```{r}
+# allExpeFilesNames contains the names of the files
 allExpeFilesNames <- c("ChIP_macs_default_peaks_chr22.narrowPeak.gz",
                        "HiCa_pAG_Rep1_macs_likeATAC_withIgG_peaks_chr22.narrowPeak.gz", 
                        "HiCa_pAG_Rep2_macs_likeATAC_withIgG_peaks_chr22.narrowPeak.gz")
+# I put a meaningful name for each file name.
 names(allExpeFilesNames) <- c("ChIP",
                               "CUTnRUN_HiCa_Rep1",
                               "CUTnRUN_HiCa_Rep2")
+# I will now get the full path for the experiments using the inputFolder variable and the allExpeFilesNames.
 allExpeFilesPath <- sapply(allExpeFilesNames, function(fn){file.path(inputFolder, fn)})
 ```
 I will convert them to GenomicRanges and put it into the list `allExpe`
 ```{r}
 allExpe <- lapply(allExpeFilesPath, function(fn){
+  # I first simplify the narrowPeak file as by default the output of macs2 can call 2 summits for the same peak and I want only once each peak
+  # It will be sorted by score
   gr <- grSortedSimplifiedFromNarrowPeak(fn)
+  # I restrict the narrowPeaks to the one falling into the chromosomes I selected.
   gr <- subset(gr, seqnames %in% myChr)
+  # I update the object with the chromosomes I selected
   seqlevels(gr) <- myChr
   return(gr)
 })
 ```
 
 ### Now, the annotations
-I chose, a gtf file to see the correlation with TSS, the fimo output which gives me the putative CTCF binding sites based on the jaspar matrix of motif, and the DNAse peaks provided by ENCODE.
+I chose, a gtf file to see the correlation with TSS, the fimo output which gives me the putative CTCF binding sites based on the jaspar matrix of motif, and the DNAse peaks provided by ENCODE. Here, again, do not put the folder, just the file names.
 ```{r}
+# Put here the name of the files
 allAnnotationFilesNames <- c("Homo_sapiens.GRCh37.87_chr22_exons.gtf.gz",
                              "fimo_hg19_CTCF_jaspar_chr22.bed.gz",
                              "GSM816655_hg19_wgEncodeOpenChromDnaseK562PkV2_chr22.narrowPeak.gz")
+# Give them a meaningful short name
 names(allAnnotationFilesNames) <- c("Genes",
                                     "CTCFmotif",
                                     "DNase")
+# This will get the full path:
 allAnnotationFilesPath <- sapply(allAnnotationFilesNames, function(fn){file.path(inputFolder, fn)})
 
 ```
 I will convert them to GenomicRanges and put it into the list `allAnnot`
 ```{r}
+# allAnnot will contains GRanges of each annotation file
 allAnnot <-list()
+# For TSS we use the function getTSSinUCSCFormatFromEnsemblGTF (which also work if the gtf is already in UCSC format).
 allAnnot[["TSS"]] <- getTSSinUCSCFormatFromEnsemblGTF(allAnnotationFilesPath[["Genes"]])
+# For bed files we use import.bed
 allAnnot[["CTCFmotif"]] <- import.bed(allAnnotationFilesPath[["CTCFmotif"]])
+# For narrowPeak we use grSortedSimplifiedFromNarrowPeak to avoid duplicated entries.
 allAnnot[["DNase"]] <- grSortedSimplifiedFromNarrowPeak(allAnnotationFilesPath[["DNase"]])
+# For each of the annotation, we subset to the chosen chromosomes.
 allAnnot <- lapply(allAnnot, function(gr){
   gr <- subset(gr, seqnames %in% myChr)
   seqlevels(gr) <- myChr
@@ -99,54 +124,102 @@ The function `findAllOverlap` will generate all pairwise comparisons and will me
 Then, to end up with a dataframe which will represent the overlaps where each peak is present only once, you use `filterByScore`. This will use the sum of the scores of each peak present in the overlap to choose the overlaps to keep.
 The filtered dataframe is stored in ovF with the name of the samples separated by `____`.
 ```{r, message=FALSE}
+# mySamplesToCheckList contains all combination you want to find overlap.
+# It is a list and each item is a vector with all names of experiment you want to compare
 mySamplesToCheckList <- list(c("CUTnRUN_HiCa_Rep1", "CUTnRUN_HiCa_Rep2"),
                              c("ChIP", "CUTnRUN_HiCa_Rep2"),
                              c("ChIP", "CUTnRUN_HiCa_Rep1", "CUTnRUN_HiCa_Rep2"))
+# ovAll is a list and will contain all the comparison already computed
+# each item of the list will be a dataframe with all possible overlap between items of the experiments
+# one item of an experiment can be present in multiple lines if it overlap with multiple items of another experiment
+# or if the item with which it overlaps overlap itself multiple experiment etc...
 ovAll <- list()
+# ovF is a list and will contain all the filtered overlaps.
+# each item of the list will be a dataframe where each item of the experiment will be present only once.
 ovF <- list()
+# For each vector in mySamplesToCheckList
 for (samplesToCheck in mySamplesToCheckList){
+  # The overlap are only computed if there are at least 2 elements
   if (length(samplesToCheck) > 1){
+    # The name of the comparison is the name of the samples separated by ____
     nameOfComp <- paste(sort(samplesToCheck), collapse = "____")
+    # We first check if the comparison has not already been calculated
     if (!nameOfComp %in% names(ovF)){
-      newOvAdded <- T
+      # compGR contains a list of GRanges with only the samplesToCheck
       compGR <- subsetByNamesOrIndices(allExpe, samplesToCheck)
+      # all overlaps are computed (this can be quite long if you have more than 3 experiments in your comparison)
       ovAll <- findAllOverlap(compGR,
                               verbose = T,
                               allMergedCalculated = ovAll,
                               returnAllMergedCalculated = T)
+      # the "final" overlap is computed filtering by score.
       ovF[[nameOfComp]] <- filterByScore(compGR,
                                          mAll = ovAll[[nameOfComp]])
     }
   }
 }
+
+# As the evaluation of ovAll and ovF can be quite long. It can be useful to store these objects:
+#  folderWithCalculatedOverlaps <-"a path with a folder of your choice"
+#  saveRDS(ovAll, paste0(folderWithCalculatedOverlaps, "/ovAll.rds"))
+#  saveRDS(ovF, paste0(folderWithCalculatedOverlaps, "/ovF.rds"))
+# If you want to get them, instead of running the for loop, just use:
+#  ovAll <- readRDS(paste0(folderWithCalculatedOverlaps, "/ovAll.rds"))
+#  ovF <- readRDS(paste0(folderWithCalculatedOverlaps, "/ovF.rds"))
+
+# The name of the comparison used in ovF is put as name in mySamplesToCheckList
 names(mySamplesToCheckList) <- sapply(mySamplesToCheckList,
                                       function(samplesToCheck){
                                         paste(sort(samplesToCheck), collapse = "____")
                                       })
+
 ```
 
 ## Display the overlaps:
 ### Euler and Venn
 Here I generated Euler and Venn diagrams for only few of the comparisons but you could do for all of them.
 ```{r}
+# We attribute a color to each sample (here I chose the one from a rainbow excluding the extremities)
 samplesColor <- rainbow(length(allExpe) + 2)[2:(length(allExpe) + 1)]
 names(samplesColor) <- names(allExpe)
+
+# I will now produce the Eulerr and Venn diagram.
+# If you want to store them in a pdf file:
+#  outputFolder <- "a path with a folder of your choice"
+#  pdf(paste0(outputFolder, "/VennB.pdf"),
+#      title = paste0(nameOfTheComparison, "_Venn"))
+
+# If you want to do it for all, replace 
+# for (e in intersect(names(ovF),
+#                     names(mySamplesToCheckList)[1:2])){
+# by:
+# for (e in names(ovF)){
+# Here I am only doing for the first and second comparison:
 for (e in intersect(names(ovF), 
                     names(mySamplesToCheckList)[1:2])){
+  # I extract from ovF the dataframe with the filtered overlaps
   temp.df <- ovF[[e]]
   n <- ncol(temp.df)
+  # I create a list with, for each experiment,
+  # the number of the raws where an item of this experiment is involved in the overlap.
   listForEulerr <- list()
   for (i in 1:n){
     listForEulerr <- c(listForEulerr, list(which(!is.na(temp.df[, i]))))
   }
   names(listForEulerr) <- colnames(temp.df)
+  # We fit the Euler diagram
   fitOfEulerr <- euler(listForEulerr, shape = "ellipse")
+  # Select the colors corresponding to the experiments
   fillCol <- samplesColor[colnames(temp.df)]
+  # Plot the Euler diagram
   print(plot(fitOfEulerr,
              main = "Euler diagram",
              fills = list(fill = fillCol, alpha = 0.5),
              legend = list(alpha = 1, cex = 0.5), labels = F,
              quantities = list(cex = 0.5)))
+  # As the Euler diagram can be sometimes misleading 
+  # (with overlaps not represented whereas they are not empty)
+  # I also plot the venn diagram
   vennForTheSame <- venn(listForEulerr)
   print(plot(vennForTheSame,
              main = "Venn diagram",
@@ -154,48 +227,84 @@ for (e in intersect(names(ovF),
              legend = list(alpha = 1, cex = 0.5), labels = F,
              quantities = list(cex = 0.5)))
 }
+# If you stored them in a pdf, do not forget to close the pdf:
+#  dev.off()
 
 ```
 
 ### UpSet
 Plotting the UpSet representation for the same overlaps:
 ```{r}
+# As for the Euler,
+# If you want to store them in a pdf file:
+#  outputFolder <- "a path with a folder of your choice"
+#  pdf(paste0(outputFolder, "/UpSet.pdf"),
+#      title = paste0(nameOfTheComparison, "_UpSet"))
+# If you want to do it for all, replace 
+# for (e in intersect(names(ovF),
+#                     names(mySamplesToCheckList)[1:2])){
+# by:
+# for (e in names(ovF)){
+# Here I am only doing for the first and second comparison:
 for (e in intersect(names(ovF), 
                     names(mySamplesToCheckList)[1:2])){
+  # I extract from ovF the dataframe with the filtered overlaps
   temp.df <- ovF[[e]]
   n <- ncol(temp.df)
+  # I create a list with, for each experiment,
+  # the number of the raws where an item of this experiment is involved in the overlap.
   listForEulerr <- list()
   for (i in 1:n){
-    listForEulerr <- c(listForEulerr,
-                       list(which(!is.na(temp.df[, i]))))
+    listForEulerr <- c(listForEulerr, list(which(!is.na(temp.df[, i]))))
   }
   names(listForEulerr) <- colnames(temp.df)
+  # Plot the upset representation
   print(upset(fromList(listForEulerr), order.by = "freq",
               number.angles = 30,
               mainbar.y.label = "Peak intersections",
               sets.x.label = "Peak per experiment",
               text.scale = 0.7))
 }
+# If you stored them in a pdf, do not forget to close the pdf:
+#  dev.off()
 ```
 
 ## Generate some plots for pairwise comparison based on the score rank
 The plots for pairwise comparison will assess how well the order (by decreasing score) is conserved between the 2 experiments:
+This can also help you to check what is the number of top peaks which maximize the overlap between replicates.
+This comparison is not useful if the experiment does not represent the same experiment. For example, if you compare a ChIP of CTCF with a ChIP of GATA1. This is not relevent.
 ```{r, message=FALSE}
 par(cex = 0.6)
 name1 <- "CUTnRUN_HiCa_Rep1"
 name2 <- "CUTnRUN_HiCa_Rep2"
+# Here the name of the experiment is pretty long and the titles would be ugly...
 # To have shorter titles and legend we will rename them to Rep1 and Rep2:
 newName1 <- "Rep1"
 newName2 <- "Rep2"
+# Former name of the experiment:
 e <- paste(sort(c(name1, name2)), collapse = "____")
+# New name of the experiment:
 newE <- paste(sort(c(newName1, newName2)), collapse = "____")
+# I duplicate the result in the ovF list
 ovF[[newE]] <- ovF[[e]]
+# But I need to change the names of the columns:
 newColNames <- colnames(ovF[[e]])
 newColNames[newColNames == name1] <- newName1
 newColNames[newColNames == name2] <- newName2
 colnames(ovF[[newE]]) <- newColNames
+# I also need to duplicate the experiments in allExperiment
 allExpe[[newName1]] <- allExpe[[name1]]
 allExpe[[newName2]] <- allExpe[[name2]]
+# Finally, I can do the comparison...
+# Because there is not a lot of peaks, 
+# I put step = 200 but for a real dataset, 
+# I would put 5000 or 2000 if there is not a lot of peaks.
+
+# If you want to save it is pdf:
+#  pdf(paste0(outputFolder, "/", newName1, "vs", newName2, ".pdf"),
+#      title = paste0(newName1, "vs", newName2, ".pdf"))
+#  plotPairwiseComparison(newName1, newName2, ovF, allExpe, step = 200, fontsize = 6)
+#  dev.off()
 plotPairwiseComparison(newName1, newName2, ovF, allExpe, step = 200, fontsize = 6)
 ```
 
@@ -206,18 +315,39 @@ Let see how the Replicate 2 correlates with the ChIP:
 par(cex = 0.6)
 name1 <- "ChIP"
 name2 <- "CUTnRUN_HiCa_Rep2"
+# Here the name of the experiment is pretty long and the titles would be ugly...
 # To have shorter titles and legend we will rename them to Rep1 and Rep2:
 newName1 <- "ChIP"
 newName2 <- "Rep2"
+# Former name of the experiment:
 e <- paste(sort(c(name1, name2)), collapse = "____")
+# New name of the experiment:
 newE <- paste(sort(c(newName1, newName2)), collapse = "____")
+# I duplicate the result in the ovF list
 ovF[[newE]] <- ovF[[e]]
+# But I need to change the names of the columns:
 newColNames <- colnames(ovF[[e]])
 newColNames[newColNames == name1] <- newName1
 newColNames[newColNames == name2] <- newName2
 colnames(ovF[[newE]]) <- newColNames
+# I also need to duplicate the experiments in allExperiment
 allExpe[[newName1]] <- allExpe[[name1]]
 allExpe[[newName2]] <- allExpe[[name2]]
+# Finally, I can do the comparison...
+# Because there is not a lot of peaks, 
+# I put step = 200 but for a real dataset, 
+# I would put 5000 or 2000 if there is not a lot of peaks.
+
+
+# Because there is not a lot of peaks, 
+# I put step = 200 but for a real dataset, 
+# I would put 5000 or 2000 if there is not a lot of peaks.
+
+# If you want to save it is pdf:
+#  pdf(paste0(outputFolder, "/", newName1, "vs", newName2, ".pdf"),
+#      title = paste0(newName1, "vs", newName2, ".pdf"))
+#  plotPairwiseComparison(newName1, newName2, ovF, allExpe, step = 200, fontsize = 6)
+#  dev.off()
 plotPairwiseComparison(newName1, newName2, ovF, allExpe, step = 200, fontsize = 6)
 ```
 
@@ -244,7 +374,9 @@ The annotations are of 2 categories:
 
 The motif and the DNase are in the first category, wherease the TSS is in the other one.
 ```{r}
+# We subset from the full list of annotations (allAnnot), the one where the score is important:
 mygrLScores <- subsetByNamesOrIndices(allAnnot, c("CTCFmotif", "DNase"))
+# We subset from the full list of annotations (allAnnot), the one where the distance is important:
 mygrDistance <- subsetByNamesOrIndices(allAnnot, c("TSS"))
 ```
 
@@ -270,6 +402,7 @@ We can conclude from these histograms that
 
 To help compare, we define the thresholds which will define the categories:
 ```{r}
+# The names of the threshold should match the name of the annotations
 mythresholdsForgrLScores = list("CTCFmotif" = c(20,10,0), "DNase" = c(900,600,500,0))
 mythresholdsForgrLDistance = list("TSS" = c(20e3,5e3,1e3,0))
 ```
@@ -283,6 +416,15 @@ And plot histograms for each category as well as heatmaps for pairs of categorie
 ```{r}
 par(cex = 0.6)
 plotCateComparisonSetAndRef(myList2, fontsize = 6) 
+# If you want to save it in pdf:
+#  pdf(paste0(outputFolder,"/setPlotOf",e,".pdf"),title=paste0("setPlotOf",e))
+#  plotClassicalHistogramForMyGRs(myList)
+#  myList2<- annotateWithCate(myList,
+#                             mythresholdsForgrLScores,
+#                             mythresholdsForgrLDistance)
+#  plotCateComparisonSetAndRef(myList2)  
+#  
+#  dev.off() 
 ```
 
 The barplots confirm what was shown with histograms but help with the quantification. For example, it shows that the proportion of CUT&RUN peaks with no CTCF motif increase from 10% in the peaks shared with ChIP to 80%. The increase in the ChIP between shared with CUT&RUN and specific is only from 20 to 25%.
