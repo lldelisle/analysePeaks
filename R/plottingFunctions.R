@@ -4,7 +4,8 @@
 #' @param colorsForGraphs a named vector with the colors which should be used in the barplot (names should correspond to category2)
 #' @param orderForCategory1 a vector with the names of the category1 in the order it should be plotted
 #' @param legend a logical to precise if the legend should be added (default is TRUE)
-#' @param args.legend list of arguments for the leged (default is topright inset=(-0.2, 0), bg= "white")
+#' @param putLegendToTheTopRightBorder a logical to precise if the legend should be until the extremity of the page (default is TRUE)
+#' @param args.legend list of arguments for the legend (default is topright inset=(-0.2, 0), bg= "white")
 #' @param las a numeric value between 0 and 3 to specify the style of axis label (default is 2)
 #' @param ... other arguments for barplot
 #' @details Will plot a barplot with one bar per category1
@@ -25,6 +26,7 @@
 barplotFromNamedVector <- function(data, colorsForGraphs = NULL,
                                    orderForCategory1 = NULL,
                                    legend = T,
+                                   putLegendToTheTopRightBorder = T,
                                    args.legend = list(x = "topright",
                                                       inset = c(-0.2, 0),
                                                       bg = "white"),
@@ -64,6 +66,19 @@ barplotFromNamedVector <- function(data, colorsForGraphs = NULL,
   }
   maxChar <- max(sapply(colnames(mat), nchar))
   graphics::par(mar = c(4 + maxChar / 3, 4, 4, 6), xpd = TRUE)
+  if (putLegendToTheTopRightBorder){
+    # I get the position of the plotting region
+    v <- graphics::par()$plt
+    # I evaluate how much I could shift the legend to the right:
+    possibleShift <- (1-v[2])/(v[2]-v[1])
+    if (is.null(args.legend)){
+      args.legend <- list(x = "topright",
+                          inset = c(-possibleShift, 0))
+    } else {
+      args.legend[["x"]] <- "topright"
+      args.legend[["inset"]] <- c(-possibleShift, 0)
+    }
+  }
   b <- graphics::barplot(mat, col = myColor, legend = legend,
                          args.legend = args.legend, las = las, ...)
   return(invisible(b))
@@ -316,16 +331,20 @@ plotAllBarPlotForCategoriesFromMyGR <- function(myGRs, nameOfColWithCate,
   colnames(t) <- c("sharedWithRef", "specific")
   maxChar <- max(sapply(colnames(t), nchar))
   graphics::par(mar = c(4 + maxChar / 3, 4, 4, 6), xpd = TRUE)
+  # I get the position of the plotting region
+  v <- graphics::par()$plt
+  # I evaluate how much I could shift the legend to the right:
+  possibleShift <- (1-v[2])/(v[2]-v[1])
   # The table is displayed as barplot
   graphics::barplot(t, legend = T,
-                    args.legend = list(x = "topright", inset = c(-0.2, 0),
+                    args.legend = list(x = "topright", inset = c(-possibleShift, 0),
                                        bg = "white"),
                     main = paste0(what, "\n for peaks of the Set\n"),
                     col = grDevices::rainbow(length(cateNames)),
                     sub = paste0("set:", stringSet, " ref:", nameOfRef))
   # Also as proportion
   graphics::barplot(prop.table(t, 2), legend = T,
-                    args.legend = list(x = "topright", inset = c(-0.2, 0),
+                    args.legend = list(x = "topright", inset = c(-possibleShift, 0),
                                        bg = "white"),
                     main = paste0("Proportion of peaks in category for \n",
                                   what, "\n for peaks of the Set"),
@@ -353,20 +372,23 @@ plotAllBarPlotForCategoriesFromMyGR <- function(myGRs, nameOfColWithCate,
   maxChar <- 15
   # We plot everything
   graphics::par(mar = c(4 + maxChar / 3, 4, 4, 6), xpd = TRUE)
+  # I get the position of the plotting region
+  v <- graphics::par()$plt
+  # I evaluate how much I could shift the legend to the right:
+  possibleShift <- (1-v[2])/(v[2]-v[1])
   graphics::barplot(t2, legend = T, main = paste0(what, "\nset:", stringSet,
                                                   "\nref:", nameOfRef),
                     col = grDevices::rainbow(length(cateNames)),
-                    args.legend = list(x = "topright", inset = c(-0.2, 0),
+                    args.legend = list(x = "topright", inset = c(- possibleShift, 0),
                                        bg = "white"),
                     las = 2)
   # Also as proportion
-  graphics::par(mar = c(4 + maxChar / 3, 4, 5, 6), xpd = TRUE)
   graphics::barplot(prop.table(t2, 2), legend = T,
                     main = paste0("Proportion of peaks in category for \n",
                                   what, "\nset:", stringSet,
                                   "\nref:", nameOfRef),
                     col = grDevices::rainbow(length(cateNames)),
-                    args.legend = list(x = "topright", inset = c(-0.2, 0),
+                    args.legend = list(x = "topright", inset = c(-possibleShift, 0),
                                        bg = "white"),
                     las = 2)
 }

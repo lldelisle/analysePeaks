@@ -5,8 +5,9 @@
 \title{Plot a barplot from a named vector}
 \usage{
 barplotFromNamedVector(data, colorsForGraphs = NULL,
-  orderForCategory1 = NULL, legend = T, args.legend = list(x =
-  "topright", inset = c(-0.2, 0), bg = "white"), las = 2, ...)
+  orderForCategory1 = NULL, legend = T,
+  putLegendToTheTopRightBorder = T, args.legend = list(x = "topright",
+  inset = c(-0.2, 0), bg = "white"), las = 2, ...)
 }
 \arguments{
 \item{data}{a named vector where values are number and names are category1(which can have dot).category2(no dot possible here)}
@@ -17,7 +18,9 @@ barplotFromNamedVector(data, colorsForGraphs = NULL,
 
 \item{legend}{a logical to precise if the legend should be added (default is TRUE)}
 
-\item{args.legend}{list of arguments for the leged (default is topright inset=(-0.2, 0), bg= "white")}
+\item{putLegendToTheTopRightBorder}{a logical to precise if the legend should be until the extremity of the page (default is TRUE)}
+
+\item{args.legend}{list of arguments for the legend (default is topright inset=(-0.2, 0), bg= "white")}
 
 \item{las}{a numeric value between 0 and 3 to specify the style of axis label (default is 2)}
 
