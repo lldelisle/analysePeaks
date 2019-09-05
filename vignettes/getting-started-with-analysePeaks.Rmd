@@ -274,11 +274,12 @@ The plots for pairwise comparison will assess how well the order (by decreasing 
 This can also help you to check what is the number of top peaks which maximize the overlap between replicates.
 This comparison is not useful if the experiment does not represent the same experiment. For example, if you compare a ChIP of CTCF with a ChIP of GATA1. This is not relevent.
 ```{r, message=FALSE}
+# I change the font size to make it fit in the vignette but you can adjust it:
 par(cex = 0.6)
 name1 <- "CUTnRUN_HiCa_Rep1"
 name2 <- "CUTnRUN_HiCa_Rep2"
 # Here the name of the experiment is pretty long and the titles would be ugly...
-# To have shorter titles and legend we will rename them to Rep1 and Rep2:
+# To have shorter titles and legend I will rename them to Rep1 and Rep2:
 newName1 <- "Rep1"
 newName2 <- "Rep2"
 # Former name of the experiment:
@@ -295,6 +296,15 @@ colnames(ovF[[newE]]) <- newColNames
 # I also need to duplicate the experiments in allExperiment
 allExpe[[newName1]] <- allExpe[[name1]]
 allExpe[[newName2]] <- allExpe[[name2]]
+
+# If your names are already pretty short, or
+# You do not want to change them, you just need to 
+# put in e the name of the comparison:
+# e <- "CUTnRUN_HiCa_Rep1____CUTnRUN_HiCa_Rep2"
+# Or get it from the mySamplesToCheckList
+# Here it is the first comparison:
+# e <- names(mySamplesToCheckList)[1]
+
 # Finally, I can do the comparison...
 # Because there is not a lot of peaks, 
 # I put step = 200 but for a real dataset, 
@@ -312,11 +322,12 @@ We can see that the replicates are highly correlated, the maximum of overlap is 
 
 Let see how the Replicate 2 correlates with the ChIP:
 ```{r, message=FALSE}
+# I change the font size to make it fit in the vignette but you can adjust it:
 par(cex = 0.6)
 name1 <- "ChIP"
 name2 <- "CUTnRUN_HiCa_Rep2"
 # Here the name of the experiment is pretty long and the titles would be ugly...
-# To have shorter titles and legend we will rename them to Rep1 and Rep2:
+# To have shorter titles and legend I will rename them to Rep1 and Rep2:
 newName1 <- "ChIP"
 newName2 <- "Rep2"
 # Former name of the experiment:
@@ -333,6 +344,15 @@ colnames(ovF[[newE]]) <- newColNames
 # I also need to duplicate the experiments in allExperiment
 allExpe[[newName1]] <- allExpe[[name1]]
 allExpe[[newName2]] <- allExpe[[name2]]
+
+# If your names are already pretty short, or
+# You do not want to change them, you just need to 
+# put in e the name of the comparison:
+# e <- "CUTnRUN_HiCa_Rep1____CUTnRUN_HiCa_Rep2"
+# Or get it from the mySamplesToCheckList
+# Here it is the second comparison:
+# e <- names(mySamplesToCheckList)[2]
+
 # Finally, I can do the comparison...
 # Because there is not a lot of peaks, 
 # I put step = 200 but for a real dataset, 
@@ -354,13 +374,16 @@ plotPairwiseComparison(newName1, newName2, ovF, allExpe, step = 200, fontsize = 
 We can see that the correlation is highly decreased, one reason is that there is a decreased proportion but even in the overlap, the order is not very well conserved.
 
 ## Generate plots for Set vs Ref comparison
-Now we would like to describe which characteristics of the peaks are specific to one technique or the other.  
-For this, we will define a reference (only one experiment), and a Set which can be multiple experiments.  
+Now I would like to describe which characteristics of the peaks are specific to one technique or the other.  
+For this, I will define a reference (only one experiment), and a Set which can be multiple experiments.  
 Let's first try to compare the Replicate 2 CUTnRUN with the ChIP:
 ```{r}
 name1 <- "ChIP"
 name2 <- "CUTnRUN_HiCa_Rep2"
 e <- paste(sort(c(name1, name2)), collapse = "____")
+# We could also get it from the mySamplesToCheckList
+# Here it is the second comparison:
+# e <- names(mySamplesToCheckList)[2]
 ```
 We define the Ref:
 ```{r}
@@ -388,6 +411,7 @@ myList <- createMyGRs(e = e, ovF = ovF, allExpe, grLScores = mygrLScores,
 ```
 We will visualise the values of the annotations to set-up categories:
 ```{r}
+# I change the font size to make it fit in the vignette but you can adjust it:
 par(cex = 0.6)
 plotClassicalHistogramForMyGRs(myList)
 ```
@@ -400,7 +424,7 @@ We can conclude from these histograms that
 
 * the peaks which are specific to the CUT&RUN method are slightly more often found at TSS.
 
-To help compare, we define the thresholds which will define the categories:
+To help compare, I define the thresholds which will define the categories:
 ```{r}
 # The names of the threshold should match the name of the annotations
 mythresholdsForgrLScores = list("CTCFmotif" = c(20,10,0), "DNase" = c(900,600,500,0))
@@ -414,6 +438,7 @@ myList2<- annotateWithCate(myList,
 ```
 And plot histograms for each category as well as heatmaps for pairs of categories:
 ```{r}
+# I change the font size to make it fit in the vignette but you can adjust it:
 par(cex = 0.6)
 plotCateComparisonSetAndRef(myList2, fontsize = 6) 
 # If you want to save it in pdf:
@@ -435,10 +460,12 @@ Here is a comparison where the Set was only one so the notion of specific and sh
 When you specify the experiment e, everything except the Ref will be considered as the Set.
 For example, we will now compare the ChIP to both replicates of CUT&RUN:
 ```{r}
+# I change the font size to make it fit in the vignette but you can adjust it:
 par(cex = 0.6)
+# Now we want to use the third comparison of mySamplesToCheckList
 e <- names(mySamplesToCheckList)[3]
 print(e)
-# We keep the reference and the annotations:
+# I keep the reference and the annotations:
 myList <- createMyGRs(e = e, ovF = ovF, allExpe, grLScores = mygrLScores,
                       grLDistance = mygrDistance,
                       nameOfRef = myRefName)
@@ -447,8 +474,9 @@ plotClassicalHistogramForMyGRs(myList)
 ```
 We still have the same conclusions when we merge the two replicates.
 ```{r}
+# I change the font size to make it fit in the vignette but you can adjust it:
 par(cex = 0.6)
-# We keep the thresholds:
+# I keep the thresholds:
 myList2<- annotateWithCate(myList,
                            mythresholdsForgrLScores,
                            mythresholdsForgrLDistance)
