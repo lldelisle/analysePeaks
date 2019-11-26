@@ -8,7 +8,7 @@ As well as when it is in Set and in the Set but not in the Reference and vice-ve
 plotClassicalHistogramForMyGRs(myGRAndAttributes)
 }
 \arguments{
-\item{myGRAndAttributes}{Should be the output of \link[analysePeaks]{createMyGRs}}
+\item{myGRAndAttributes}{Should be the output of \link[analysePeaks]{createMyGRs} or \link[analysePeaks]{createMyGRsUsingSimpleOverlap}}
 }
 \value{
 Plot histograms but do not return anything

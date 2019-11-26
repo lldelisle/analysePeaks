@@ -5,12 +5,27 @@
 \title{Plot barplots and pheatmaps for the scores or the distance of features in the Set and in the Reference
 As well as when it is in Set and in the Set but not in the Reference and vice-versa}
 \usage{
-plotCateComparisonSetAndRef(myGRAndAttributes, fontsize = 10)
+plotCateComparisonSetAndRef(
+  myGRAndAttributes,
+  fontsize = 10,
+  plotBarPlots = TRUE,
+  only5categoriesBP = FALSE,
+  plotPheatmaps = TRUE,
+  display_numbers = TRUE
+)
 }
 \arguments{
 \item{myGRAndAttributes}{Should be the output of \link[analysePeaks]{annotateWithCate}}
 
 \item{fontsize}{base fontsize for the heatmaps (default is 10)}
+
+\item{plotBarPlots}{logical whether to plot the barplots (default is TRUE)}
+
+\item{only5categoriesBP}{logical whether to plot only the barplots with 5 categories (default is FALSE).}
+
+\item{plotPheatmaps}{logical whether to plot the pheatmaps (default is TRUE)}
+
+\item{display_numbers}{logical whether to display the numbers in the pheatmaps (default is TRUE)}
 }
 \value{
 Plot barplots and pheatmaps but do not return anything

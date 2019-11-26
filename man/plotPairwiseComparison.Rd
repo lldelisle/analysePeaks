@@ -4,15 +4,14 @@
 \alias{plotPairwiseComparison}
 \title{Plot different plots to illustrate a comparison between 2 overlaps}
 \usage{
-plotPairwiseComparison(name1, name2, ovF, allExpe, step = 5000,
-  fontsize = 10)
+plotPairwiseComparison(name1, name2, ovF, allExpe, step = 5000, fontsize = 10)
 }
 \arguments{
 \item{name1}{the name of the first experiment to use}
 
 \item{name2}{the name of the second experiment to use}
 
-\item{ovF}{the list with at least the filtered overlap for name1 and name2}
+\item{ovF}{the list with at least the filtered overlap or the dataframe with cluster info for name1 and name2}
 
 \item{allExpe}{a GRanges list with at least name1 and name2 items with a dataframe with a column called score}
 

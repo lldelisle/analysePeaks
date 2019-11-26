@@ -4,11 +4,14 @@
 \alias{writeTablesFromMyGRsAndAnnot}
 \title{Export myGRs with all annotations in tab-delimited text files.}
 \usage{
-writeTablesFromMyGRsAndAnnot(myGRAndAttributes, outputDirectory,
-  useOriginalNarrowPeak = F)
+writeTablesFromMyGRsAndAnnot(
+  myGRAndAttributes,
+  outputDirectory,
+  useOriginalNarrowPeak = F
+)
 }
 \arguments{
-\item{myGRAndAttributes}{Should be the output of \link[analysePeaks]{createMyGRs} or \link[analysePeaks]{annotateWithCate}}
+\item{myGRAndAttributes}{Should be the output of \link[analysePeaks]{createMyGRs} or \link[analysePeaks]{createMyGRsUsingSimpleOverlap}}
 
 \item{outputDirectory}{a path to a folder where will be written the text files.}
 

@@ -4,9 +4,19 @@
 \alias{plotAllPheatmapsFor2CategoriesFromMyGR}
 \title{Plot pheatmaps for categories of 2 specific features for a Set and a Ref}
 \usage{
-plotAllPheatmapsFor2CategoriesFromMyGR(myGRs, nameOfColWithCate1,
-  cateNames1, what1, nameOfColWithCate2, cateNames2, what2, stringSet,
-  nameOfRef, fontsize = 10)
+plotAllPheatmapsFor2CategoriesFromMyGR(
+  myGRs,
+  nameOfColWithCate1,
+  cateNames1,
+  what1,
+  nameOfColWithCate2,
+  cateNames2,
+  what2,
+  stringSet,
+  nameOfRef,
+  fontsize = 10,
+  display_numbers = T
+)
 }
 \arguments{
 \item{myGRs}{a GRangeList of 2 elements which are the set and the ref and should have 2 meta columns `nameOfColWithCate1` and `nameOfColWithCate2`}
@@ -28,6 +38,8 @@ plotAllPheatmapsFor2CategoriesFromMyGR(myGRs, nameOfColWithCate1,
 \item{nameOfRef}{the name of the reference}
 
 \item{fontsize}{base fontsize for the heatmaps (default is 10)}
+
+\item{display_numbers}{logical whether to display the numbers in the pheatmaps (default is TRUE)}
 }
 \value{
 Plot but do not return anything

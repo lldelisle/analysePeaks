@@ -4,8 +4,11 @@
 \alias{annotateWithCate}
 \title{Add annotations to the list to be able to plot categories}
 \usage{
-annotateWithCate(myGRAndAttributes, thresholdsForgrLScores,
-  thresholdsForgrLDistance)
+annotateWithCate(
+  myGRAndAttributes,
+  thresholdsForgrLScores,
+  thresholdsForgrLDistance
+)
 }
 \arguments{
 \item{myGRAndAttributes}{Should be the output of \link[analysePeaks]{createMyGRs}}

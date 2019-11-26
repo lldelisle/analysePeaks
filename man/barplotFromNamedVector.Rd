@@ -4,10 +4,16 @@
 \alias{barplotFromNamedVector}
 \title{Plot a barplot from a named vector}
 \usage{
-barplotFromNamedVector(data, colorsForGraphs = NULL,
-  orderForCategory1 = NULL, legend = T,
-  putLegendToTheTopRightBorder = T, args.legend = list(x = "topright",
-  inset = c(-0.2, 0), bg = "white"), las = 2, ...)
+barplotFromNamedVector(
+  data,
+  colorsForGraphs = NULL,
+  orderForCategory1 = NULL,
+  legend = T,
+  putLegendToTheTopRightBorder = T,
+  args.legend = list(x = "topright", inset = c(-0.2, 0), bg = "white"),
+  las = 2,
+  ...
+)
 }
 \arguments{
 \item{data}{a named vector where values are number and names are category1(which can have dot).category2(no dot possible here)}

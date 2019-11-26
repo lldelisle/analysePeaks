@@ -101,6 +101,7 @@ names(allAnnotationFilesNames) <- c("Genes",
 allAnnotationFilesPath <- sapply(allAnnotationFilesNames, function(fn){file.path(inputFolder, fn)})
 
 ```
+
 I will convert them to GenomicRanges and put it into the list `allAnnot`
 ```{r}
 # allAnnot will contains GRanges of each annotation file
@@ -120,15 +121,35 @@ allAnnot <- lapply(allAnnot, function(gr){
 ```
 
 ## Evaluate all useful and interesting overlaps
-The function `findAllOverlap` will generate all pairwise comparisons and will merge them using all possible permutations. This operation may be very long when you have more than 5 experiments to overlap because you have 24 possible permutations and 120 permutations if you have 6...
-Then, to end up with a dataframe which will represent the overlaps where each peak is present only once, you use `filterByScore`. This will use the sum of the scores of each peak present in the overlap to choose the overlaps to keep.
-The filtered dataframe is stored in ovF with the name of the samples separated by `____`.
-```{r, message=FALSE}
+There are mainly 2 ways to evaluate the overlaps.
+```{bash eval=FALSE}
+sample 1      ----peak1a----     ----peak1b---                     --peak1c--               ----peak1d---
+sample 2            ------------------peak2a---------------------              ---peak2b---      ---peak2c---
+sample 3 --peak3a--                                                                           --peak3b--
+```
+
+- You want to have a one-to-one overlap: each shared peak in sample 1 should have maximum one corresponding shared peak in sample 2 and maximum one corresponding shared peak in sample 3. This allow to make real Venn diagram: the number of shared peaks between sample 1 and sample 2 is the same in sample 1 and in sample 2. 
+  - With 2 samples: When multiple peaks of one experiment overlap one or more peaks from the second, we need to make an arbitrary choice. I decided to put together the peaks with the highest scores. For example, if peak1a has a higher score than peak1b, the pairing would be peak1a with peak2a, peak1d with peak2c. peak1b and peak1c would be specific to sample 1 and peak2b specific to sample 2. 
+  - With 3 samples: I decided to put together only peaks that all overlap: peak2a will not be shared with peak1a even if they both overlap peak1a. Then depending on the scores we could have peak1a with peak2a, peak1b and peak 3a specific, or peak1a with peak3a and peak1b with peak2a. This method is time consuming because when you have more than 2 samples it can be tricky to find the best combination.
+- The other approach is if you want to have in the specific peaks only the peaks which does not overlap at all any of the peak of the other condition. This is much more faster but then the number of shared peaks do not match. 
+  - In the above example, only peak1c and peak2b would be specific. There will be one cluster with peak1a, peak1b, peak2a, and peak3a and one cluster with peak1d, peak2c, and peak3b. So there will be 3 shared peaks in sample 1 corresponding to 2 shared peaks in sample 2. 
+  - In addition, peak3a will be considered as overlapping peak2a even if there is no overlap between them. This choice was made because usually you are interested in the overlap between replicates compared to another dataset, so even if the representent of the "overlap between replicates" that would be sample 1 and sample2 is peak2a, you may not want to say that peak2a is specific to the "overlap between replicates" as peak1a overlap peak3a.
+  <!-- - In the downstream analysis, only the member of the cluster with the highest score will be used. For example, in sample 1, there will be 2 shared peaks (peak1a and peak1d) and in sample 2, peak2a and peak2c. -->
+
+```{r}
 # mySamplesToCheckList contains all combination you want to find overlap.
 # It is a list and each item is a vector with all names of experiment you want to compare
 mySamplesToCheckList <- list(c("CUTnRUN_HiCa_Rep1", "CUTnRUN_HiCa_Rep2"),
                              c("ChIP", "CUTnRUN_HiCa_Rep2"),
                              c("ChIP", "CUTnRUN_HiCa_Rep1", "CUTnRUN_HiCa_Rep2"))
+```
+
+
+### Using the one-to-one overlaps
+The function `findAllOverlap` will generate all pairwise comparisons and will merge them using all possible permutations. This operation may be very long when you have more than 5 experiments to overlap because you have 24 possible permutations and 120 permutations if you have 6...
+Then, to end up with a dataframe which will represent the overlaps where each peak is present only once, you use `filterByScore`. This will use the sum of the scores of each peak present in the overlap to choose the overlaps to keep.
+The filtered dataframe is stored in ovF with the name of the samples separated by `____`.
+```{r, message=FALSE}
 # ovAll is a list and will contain all the comparison already computed
 # each item of the list will be a dataframe with all possible overlap between items of the experiments
 # one item of an experiment can be present in multiple lines if it overlap with multiple items of another experiment
@@ -175,7 +196,36 @@ names(mySamplesToCheckList) <- sapply(mySamplesToCheckList,
 
 ```
 
-## Display the overlaps:
+### Using the simple overlap
+```{r}
+# ovClusters is a list and will contain all the dataframe summarizing the overlaps by cluster
+ovClusters <- list()
+# For each vector in mySamplesToCheckList
+for (samplesToCheck in mySamplesToCheckList){
+  # The overlap are only computed if there are at least 2 elements
+  if (length(samplesToCheck) > 1){
+    # The name of the comparison is the name of the samples separated by ____
+    nameOfComp <- paste(sort(samplesToCheck), collapse = "____")
+    # We first check if the comparison has not already been calculated
+    if (!nameOfComp %in% names(ovClusters)){
+      # compGR contains a list of GRanges with only the samplesToCheck
+      compGR <- subsetByNamesOrIndices(allExpe, samplesToCheck)
+      # all overlaps are computed (this can be quite long if you have more than 3 experiments in your comparison)
+      ovClusters[[nameOfComp]] <- findOverlapAsClusters(compGR)
+    }
+  }
+}
+
+# The name of the comparison used in ovF is put as name in mySamplesToCheckList
+names(mySamplesToCheckList) <- sapply(mySamplesToCheckList,
+                                      function(samplesToCheck){
+                                        paste(sort(samplesToCheck), collapse = "____")
+                                      })
+
+```
+
+
+## Display the overlaps in one-to-one:
 ### Euler and Venn
 Here I generated Euler and Venn diagrams for only few of the comparisons but you could do for all of them.
 ```{r}
@@ -269,6 +319,165 @@ for (e in intersect(names(ovF),
 #  dev.off()
 ```
 
+## Display the overlaps in overlap by cluster:
+### Euler and Venn
+Here I generated Euler and Venn diagrams for only few of the comparisons but you could do for all of them.
+```{r}
+# We attribute a color to each sample (here I chose the one from a rainbow excluding the extremities)
+samplesColor <- rainbow(length(allExpe) + 2)[2:(length(allExpe) + 1)]
+names(samplesColor) <- names(allExpe)
+
+# I will now produce the Eulerr and Venn diagram.
+# If you want to store them in a pdf file:
+#  outputFolder <- "a path with a folder of your choice"
+#  pdf(paste0(outputFolder, "/VennB.pdf"),
+#      title = paste0(nameOfTheComparison, "_Venn"))
+
+# If you want to do it for all, replace 
+# for (e in intersect(names(ovClusters),
+#                     names(mySamplesToCheckList)[1:2])){
+# by:
+# for (e in names(ovClusters)){
+# Here I am only doing for the first and second comparison:
+for (e in intersect(names(ovClusters), 
+                    names(mySamplesToCheckList)[1:2])){
+  # I extract from ovClusters the dataframe with the clusters
+  df <- ovClusters[[e]]
+  temp.df <- as.data.frame(apply(df, 2, function(l){
+    sapply(l, length)
+  }))
+  colnames(temp.df) <- colnames(df)
+  temp.df2 <- as.data.frame(temp.df > 0)
+  n <- ncol(temp.df)
+  # I create a list with, for each experiment,
+  # the number of the raws where an item of this experiment is involved in the overlap.
+  listForEulerr <- list()
+  for (i in 1:n){
+    listForEulerr <- c(listForEulerr, list(which(temp.df[, i] != 0)))
+  }
+  names(listForEulerr) <- colnames(temp.df)
+  # We fit the Euler diagram
+  fitOfEulerr <- euler(listForEulerr, shape = "ellipse")
+  # Select the colors corresponding to the experiments
+  fillCol <- samplesColor[colnames(temp.df)]
+  # Plot the Euler diagram
+  p <- plot(fitOfEulerr,
+            main = "Euler diagram",
+            fills = list(fill = fillCol, alpha = 0.5),
+            legend = list(alpha = 1, cex = 0.5), labels = F,
+            quantities = list(cex = 0.5))
+  combinations <- fitOfEulerr$original.values
+  p <- plot(fitOfEulerr,
+            main = "Euler diagram",
+            fills = list(fill = fillCol, alpha = 0.5),
+            legend = list(alpha = 1, cex = 0.5), labels = F,
+            quantities = list(labels = as.character(1:length(combinations)),
+                              cex = 0.5))
+  # Where I will put the real quantities both for clusters and peaks numbers:
+  for(i in 1:length(combinations)){
+    j <- as.numeric(p$children$canvas.grob$children$diagram.grob.1$children$tags$children[[i]]$children[[2]]$label)
+    name <- names(combinations)[i]
+    if (!grepl("&", name)){
+      p$children$canvas.grob$children$diagram.grob.1$children$tags$children[[i]]$children[[2]]$label <- 
+        paste(combinations[j], "clusters\n", combinations[j], "peaks")
+    } else {
+      inOverlap <- strsplit(name, "&")[[1]]
+      absentInOverlap <- setdiff(colnames(df), inOverlap)
+      if (length(absentInOverlap) == 0){
+        cmd <- paste0("with(temp.df, which(", paste(inOverlap, "> 0", collapse = " & "), "))")
+      } else {
+        cmd <- paste0("with(temp.df, which(", paste(inOverlap, "> 0", collapse = " & "), " & ",
+                      paste(absentInOverlap, "== 0", collapse = " & "), "))")
+      }
+      clusters <- eval(parse(text = cmd))
+      peaksNumbers <- colSums(temp.df[clusters, inOverlap])
+      p$children$canvas.grob$children$diagram.grob.1$children$tags$children[[i]]$children[[2]]$label <- 
+        paste(combinations[j], "clusters\n", paste(peaksNumbers, collapse = ","), "peaks")
+    }
+  }
+  print(p)
+  # As the Euler diagram can be sometimes misleading 
+  # (with overlaps not represented whereas they are not empty)
+  # I also plot the venn diagram
+  vennForTheSame <- venn(listForEulerr)
+  p <- plot(vennForTheSame,
+            main = "Venn diagram",
+            fills = list(fill = fillCol, alpha = 0.5),
+            legend = list(alpha = 1, cex = 0.5), labels = F,
+            quantities = list(labels = as.character(1:length(combinations)),
+                              cex = 0.5))
+  # Where I will put the real quantities both for clusters and peaks numbers:
+  for(i in 1:length(combinations)){
+    j <- as.numeric(p$children$canvas.grob$children$diagram.grob.1$children$tags$children[[i]]$children[[2]]$label)
+    name <- names(combinations)[i]
+    if (!grepl("&", name)){
+      p$children$canvas.grob$children$diagram.grob.1$children$tags$children[[i]]$children[[2]]$label <- 
+        paste(combinations[j], "clusters\n", combinations[j], "peaks")
+    } else {
+      inOverlap <- strsplit(name, "&")[[1]]
+      absentInOverlap <- setdiff(colnames(df), inOverlap)
+      if (length(absentInOverlap) == 0){
+        cmd <- paste0("with(temp.df, which(", paste(inOverlap, "> 0", collapse = " & "), "))")
+      } else {
+        cmd <- paste0("with(temp.df, which(", paste(inOverlap, "> 0", collapse = " & "), " & ",
+                      paste(absentInOverlap, "== 0", collapse = " & "), "))")
+      }
+      clusters <- eval(parse(text = cmd))
+      peaksNumbers <- colSums(temp.df[clusters, inOverlap])
+      p$children$canvas.grob$children$diagram.grob.1$children$tags$children[[i]]$children[[2]]$label <- 
+        paste(combinations[j], "clusters\n", paste(peaksNumbers, collapse = ","), "peaks")
+    }
+  }
+  print(p)
+  
+}
+# If you stored them in a pdf, do not forget to close the pdf:
+#  dev.off()
+```
+
+### UpSet
+Plotting the UpSet representation for the same overlaps:
+```{r}
+# As for the Euler,
+# If you want to store them in a pdf file:
+#  outputFolder <- "a path with a folder of your choice"
+#  pdf(paste0(outputFolder, "/UpSet.pdf"),
+#      title = paste0(nameOfTheComparison, "_UpSet"))
+# If you want to do it for all, replace 
+# for (e in intersect(names(ovF),
+#                     names(mySamplesToCheckList)[1:2])){
+# by:
+# for (e in names(ovF)){
+# Here I am only doing for the first and second comparison:
+for (e in intersect(names(ovClusters), 
+                    names(mySamplesToCheckList)[1:2])){
+  # I extract from ovClusters the dataframe with the clusters
+  df <- ovClusters[[e]]
+  temp.df <- as.data.frame(apply(df, 2, function(l){
+    sapply(l, length)
+  }))
+  colnames(temp.df) <- colnames(df)
+  temp.df2 <- as.data.frame(temp.df > 0)
+  n <- ncol(temp.df)
+  # I create a list with, for each experiment,
+  # the number of the raws where an item of this experiment is involved in the overlap.
+  listForEulerr <- list()
+  for (i in 1:n){
+    listForEulerr <- c(listForEulerr, list(which(temp.df[, i] != 0)))
+  }
+  names(listForEulerr) <- colnames(temp.df)
+  # Plot the upset representation
+  print(upset(fromList(listForEulerr), order.by = "freq",
+              number.angles = 30,
+              mainbar.y.label = "Number of Clusters",
+              sets.x.label = "Number of Clusters per experiment",
+              text.scale = 0.7))
+}
+# If you stored them in a pdf, do not forget to close the pdf:
+#  dev.off()
+```
+
+
 ## Generate some plots for pairwise comparison based on the score rank
 The plots for pairwise comparison will assess how well the order (by decreasing score) is conserved between the 2 experiments:
 This can also help you to check what is the number of top peaks which maximize the overlap between replicates.
@@ -318,7 +527,17 @@ allExpe[[newName2]] <- allExpe[[name2]]
 plotPairwiseComparison(newName1, newName2, ovF, allExpe, step = 200, fontsize = 6)
 ```
 
-We can see that the replicates are highly correlated, the maximum of overlap is obtained for the top 400 peaks.
+We can also use the same function using the clustering overlap:
+```{r}
+ovClusters[[newE]] <- ovClusters[[e]]
+# But I need to change the names of the columns:
+colnames(ovClusters[[newE]]) <- newColNames
+
+plotPairwiseComparison(newName1, newName2, ovClusters, allExpe, step = 200, fontsize = 6)
+```
+
+
+We can see that the replicates are highly correlated (independently on the method used), and the maximum of overlap is obtained for the top 400 peaks.
 
 Let see how the Replicate 2 correlates with the ChIP:
 ```{r, message=FALSE}
@@ -371,7 +590,16 @@ allExpe[[newName2]] <- allExpe[[name2]]
 plotPairwiseComparison(newName1, newName2, ovF, allExpe, step = 200, fontsize = 6)
 ```
 
-We can see that the correlation is highly decreased, one reason is that there is a decreased proportion but even in the overlap, the order is not very well conserved.
+We can also use the same function using the clustering overlap:
+```{r}
+ovClusters[[newE]] <- ovClusters[[e]]
+# But I need to change the names of the columns:
+colnames(ovClusters[[newE]]) <- newColNames
+
+plotPairwiseComparison(newName1, newName2, ovClusters, allExpe, step = 200, fontsize = 6)
+```
+
+We can see that the correlation is highly decreased, one reason is that there is a decreased proportion of overlapping but even in the overlap, the order is not very well conserved.
 
 ## Generate plots for Set vs Ref comparison
 Now I would like to describe which characteristics of the peaks are specific to one technique or the other.  
@@ -409,6 +637,7 @@ myList <- createMyGRs(e = e, ovF = ovF, allExpe, grLScores = mygrLScores,
                       grLDistance = mygrDistance,
                       nameOfRef = myRefName)
 ```
+
 We will visualise the values of the annotations to set-up categories:
 ```{r}
 # I change the font size to make it fit in the vignette but you can adjust it:
@@ -423,6 +652,12 @@ We can conclude from these histograms that
 * the peaks which are specific to the ChIP method are less open (the score of DNase is decreased).
 
 * the peaks which are specific to the CUT&RUN method are slightly more often found at TSS.
+
+Another way to define categories is to use the quartiles:
+```{r}
+lapply(mygrLScores, function(gr) {quantile(gr$score, c(0, 0.25, 0.5, 0.75, 0.9, 0.95, 0.99, 1))})
+```
+
 
 To help compare, I define the thresholds which will define the categories:
 ```{r}
@@ -456,6 +691,21 @@ The barplots confirm what was shown with histograms but help with the quantifica
 
 The heatmap are really interesting because they better qualify. Most of the peaks which are specific to CUT&RUN tend to have no CTCF binding motif and are either at TSS with high DNase score or with no DNase between 1kb and 20kb of any TSS.
 
+The same analysis can be done using the overlaps by cluster:
+```{r}
+myList <- createMyGRsUsingSimpleOverlap(mySet = name2, myRef = name1,
+                                        ovCluster = ovClusters[[e]], allExpe, grLScores = mygrLScores,
+                                        grLDistance = mygrDistance)
+par(cex = 0.6)
+plotClassicalHistogramForMyGRs(myList)
+myList2<- annotateWithCate(myList,
+                           mythresholdsForgrLScores,
+                           mythresholdsForgrLDistance)
+plotCateComparisonSetAndRef(myList2, fontsize = 6) 
+
+```
+
+
 Here is a comparison where the Set was only one so the notion of specific and shared is quite easy. When the Set is composed of multiple experiments, first the Set peaks are the peaks which are shared between all experiments of the Set. Then, what is specific to the set is quite straight forward (shared between all Set members and shared by the Ref). What is specific to the Ref is defined as not shared by any of the Set members.
 When you specify the experiment e, everything except the Ref will be considered as the Set.
 For example, we will now compare the ChIP to both replicates of CUT&RUN:
@@ -483,6 +733,20 @@ myList2<- annotateWithCate(myList,
 plotCateComparisonSetAndRef(myList2, fontsize = 6) 
 ```
 
+The same analysis can be done using the overlaps by cluster:
+```{r}
+myListO <- createMyGRsUsingSimpleOverlap(mySet = c("CUTnRUN_HiCa_Rep1", "CUTnRUN_HiCa_Rep2"), myRef = c("ChIP"),
+                                        ovCluster = ovClusters[[e]], allExpe, grLScores = mygrLScores,
+                                        grLDistance = mygrDistance)
+par(cex = 0.6)
+# plotClassicalHistogramForMyGRs(myList)
+myList2O<- annotateWithCate(myListO,
+                           mythresholdsForgrLScores,
+                           mythresholdsForgrLDistance)
+plotCateComparisonSetAndRef(myList2O, fontsize = 6) 
+
+```
+
 ## Export
 You might be interested in exporting the data you generated.  
 There are 2 functions in the package to export data:
@@ -490,11 +754,16 @@ There are 2 functions in the package to export data:
 * `writeNarrowPeaksFromMyGRsAndAnnot` which will write 4 narrowPeak files from an output of createMyGRs:
 ```{r,  eval=FALSE}
 writeNarrowPeaksFromMyGRsAndAnnot(myList, outputDirectory = "./")
+# Also working with myListO
+writeNarrowPeaksFromMyGRsAndAnnot(myListO, outputDirectory = "./")
 ```
 
 * `writeTablesFromMyGRsAndAnnot` which will write 2 tables with all evaluated information for each peak from an output of createMyGRs:
 ```{r,  eval=FALSE}
 writeTablesFromMyGRsAndAnnot(myList2, outputDirectory = "./")
+# Also working with myList2O
+# But as it output the same file names it should be in a different outputDirectory
+writeNarrowPeaksFromMyGRsAndAnnot(myList2O, outputDirectory = "./withCluster/")
 ```
 
 

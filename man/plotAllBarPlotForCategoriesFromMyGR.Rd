@@ -4,8 +4,15 @@
 \alias{plotAllBarPlotForCategoriesFromMyGR}
 \title{Plot barplot for categories of a specific feature for a Set and a Ref}
 \usage{
-plotAllBarPlotForCategoriesFromMyGR(myGRs, nameOfColWithCate, cateNames,
-  stringSet, what, nameOfRef)
+plotAllBarPlotForCategoriesFromMyGR(
+  myGRs,
+  nameOfColWithCate,
+  cateNames,
+  stringSet,
+  what,
+  nameOfRef,
+  only5categoriesBP = FALSE
+)
 }
 \arguments{
 \item{myGRs}{a GRangeList of 2 elements which are the set and the ref and should have as meta column `nameOfColWithCate`}
@@ -19,6 +26,8 @@ plotAllBarPlotForCategoriesFromMyGR(myGRs, nameOfColWithCate, cateNames,
 \item{what}{the name of the measure}
 
 \item{nameOfRef}{the name of the reference}
+
+\item{only5categoriesBP}{logical whether to plot only the barplots with 5 categories (default is FALSE).}
 }
 \value{
 Plot but do not return anything
