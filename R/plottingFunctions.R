@@ -501,6 +501,13 @@ plotAllBarPlotForCategoriesFromMyGR <- function(myGRs, nameOfColWithCate,
 #' @param nameOfRef the name of the reference
 #' @param fontsize base fontsize for the heatmaps (default is 10)
 #' @param display_numbers logical whether to display the numbers in the pheatmaps (default is TRUE)
+#' @param whichPheatmaps a vector containing the pheatmaps to plot between 1 to 5 with:
+#' 1=shared by all Set and at least one Ref or shared by all Set and Ref
+#' 2=shared by all Set none of the Ref or shared by all Set no Ref
+#' 3=shared by all Set: all or all shared by all Set
+#' 4=shared by all Ref in not a single of the set or Ref in not a single of the set
+#' 5=shared by all Ref: all or all Ref
+#' (default is 1:5)
 #' @return Plot but do not return anything
 #' @importFrom pheatmap pheatmap
 #' @export
@@ -511,9 +518,13 @@ plotAllPheatmapsFor2CategoriesFromMyGR <- function(myGRs, nameOfColWithCate1,
                                                    what2,
                                                    stringSet, nameOfRef,
                                                    fontsize = 10,
-                                                   display_numbers = T){
+                                                   display_numbers = T,
+                                                   whichPheatmaps = 1:5){
   if (length(myGRs) < 2){
     stop("Wrong myGRs\n")
+  }
+  if (any(whichPheatmaps > 5) | any(whichPheatmaps < 1)){
+    stop("Invalid whichPheatmap:", whichPheatmaps, " should be between 1 and 5.")
   }
   if (!"inUniqueRef" %in% colnames(GenomicRanges::mcols(myGRs[[1]]))){
     if (!"inNoneOfTheRef" %in% colnames(GenomicRanges::mcols(myGRs[[1]]))){
@@ -567,7 +578,7 @@ plotAllPheatmapsFor2CategoriesFromMyGR <- function(myGRs, nameOfColWithCate1,
   inputsGR[[5]] <- myGRs[[2]]
   inputsGRWhat[[5]] <- labels[5]
 
-  for (i in 1:length(inputsGR)){
+  for (i in whichPheatmaps){
     # We make the table using the 2 categories
     t1 <- table(factor(GenomicRanges::mcols(inputsGR[[i]])[,
                                                            nameOfColWithCate1],
@@ -596,6 +607,14 @@ plotAllPheatmapsFor2CategoriesFromMyGR <- function(myGRs, nameOfColWithCate1,
 #' @param plotBarPlots logical whether to plot the barplots (default is TRUE)
 #' @param only5categoriesBP logical whether to plot only the barplots with 5 categories (default is FALSE).
 #' @param plotPheatmaps logical whether to plot the pheatmaps (default is TRUE)
+#' @param whichPheatmaps a vector containing the pheatmaps to plot between 1 to 5 with:
+#' 1=shared by all Set and at least one Ref or shared by all Set and Ref
+#' 2=shared by all Set none of the Ref or shared by all Set no Ref
+#' 3=shared by all Set: all or all shared by all Set
+#' 4=shared by all Ref in not a single of the set or Ref in not a single of the set
+#' 5=shared by all Ref: all or all Ref
+#' (default is 1:5)
+#' @param allCates a vector of string with the categories to plot, if NULL all categories in `myGRAndAttributes` are used (default is NULL)
 #' @param display_numbers logical whether to display the numbers in the pheatmaps (default is TRUE)
 #' @return Plot barplots and pheatmaps but do not return anything
 #' @importFrom GenomicRanges mcols
@@ -604,8 +623,12 @@ plotCateComparisonSetAndRef <- function(myGRAndAttributes, fontsize = 10,
                                         plotBarPlots = TRUE,
                                         only5categoriesBP = FALSE,
                                         plotPheatmaps = TRUE,
-                                        display_numbers = TRUE){
-  allCates <- myGRAndAttributes[["allCates"]]
+                                        display_numbers = TRUE,
+                                        whichPheatmaps = 1:5,
+                                        allCates = NULL){
+  if (is.null(allCates)){
+    allCates <- myGRAndAttributes[["allCates"]]
+  }
   myGRs <- myGRAndAttributes[["myGRs"]]
   if (plotBarPlots){
     for (i in 1:length(allCates)){
@@ -624,19 +647,22 @@ plotCateComparisonSetAndRef <- function(myGRAndAttributes, fontsize = 10,
     }
   }
   if (plotPheatmaps){
-    for (i in 1:length(allCates)){
-      for (j in setdiff(1:length(allCates), i)){
-        plotAllPheatmapsFor2CategoriesFromMyGR(myGRs,
-                                               allCates[[i]][["nameOfCol"]],
-                                               allCates[[i]][["cateNames"]],
-                                               allCates[[i]][["what"]],
-                                               allCates[[j]][["nameOfCol"]],
-                                               allCates[[j]][["cateNames"]],
-                                               allCates[[j]][["what"]],
-                                               myGRAndAttributes[["stringSet"]],
-                                               myGRAndAttributes[["nameOfRef"]],
-                                               fontsize = fontsize,
-                                               display_numbers = display_numbers)
+    if (length(allCates) > 1){
+      for (i in 1:length(allCates)){
+        for (j in setdiff(1:length(allCates), i)){
+          plotAllPheatmapsFor2CategoriesFromMyGR(myGRs,
+                                                 allCates[[i]][["nameOfCol"]],
+                                                 allCates[[i]][["cateNames"]],
+                                                 allCates[[i]][["what"]],
+                                                 allCates[[j]][["nameOfCol"]],
+                                                 allCates[[j]][["cateNames"]],
+                                                 allCates[[j]][["what"]],
+                                                 myGRAndAttributes[["stringSet"]],
+                                                 myGRAndAttributes[["nameOfRef"]],
+                                                 fontsize = fontsize,
+                                                 display_numbers = display_numbers,
+                                                 whichPheatmaps = whichPheatmaps)
+        }
       }
     }
   }

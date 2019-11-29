@@ -15,7 +15,8 @@ plotAllPheatmapsFor2CategoriesFromMyGR(
   stringSet,
   nameOfRef,
   fontsize = 10,
-  display_numbers = T
+  display_numbers = T,
+  whichPheatmaps = 1:5
 )
 }
 \arguments{
@@ -40,6 +41,14 @@ plotAllPheatmapsFor2CategoriesFromMyGR(
 \item{fontsize}{base fontsize for the heatmaps (default is 10)}
 
 \item{display_numbers}{logical whether to display the numbers in the pheatmaps (default is TRUE)}
+
+\item{whichPheatmaps}{a vector containing the pheatmaps to plot between 1 to 5 with:
+1=shared by all Set and at least one Ref or shared by all Set and Ref
+2=shared by all Set none of the Ref or shared by all Set no Ref
+3=shared by all Set: all or all shared by all Set
+4=shared by all Ref in not a single of the set or Ref in not a single of the set
+5=shared by all Ref: all or all Ref
+(default is 1:5)}
 }
 \value{
 Plot but do not return anything
