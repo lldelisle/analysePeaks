@@ -687,6 +687,12 @@ plotCateComparisonSetAndRef(myList2, fontsize = 6)
 #  dev.off() 
 ```
 
+```{r}
+# You can also replot heatmaps as proportion:
+plotCateComparisonSetAndRef(myList2, plotBarPlots = F, plotProportion = T, fontsize = 6) 
+```
+
+
 The barplots confirm what was shown with histograms but help with the quantification. For example, it shows that the proportion of CUT&RUN peaks with no CTCF motif increase from 10% in the peaks shared with ChIP to 80%. The increase in the ChIP between shared with CUT&RUN and specific is only from 20 to 25%.
 
 The heatmap are really interesting because they better qualify. Most of the peaks which are specific to CUT&RUN tend to have no CTCF binding motif and are either at TSS with high DNase score or with no DNase between 1kb and 20kb of any TSS.

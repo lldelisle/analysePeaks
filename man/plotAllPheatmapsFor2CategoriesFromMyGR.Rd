@@ -16,7 +16,8 @@ plotAllPheatmapsFor2CategoriesFromMyGR(
   nameOfRef,
   fontsize = 10,
   display_numbers = T,
-  whichPheatmaps = 1:5
+  whichPheatmaps = 1:5,
+  plotProportion = F
 )
 }
 \arguments{
@@ -49,6 +50,8 @@ plotAllPheatmapsFor2CategoriesFromMyGR(
 4=shared by all Ref in not a single of the set or Ref in not a single of the set
 5=shared by all Ref: all or all Ref
 (default is 1:5)}
+
+\item{plotProportion}{logical whether to display the pheatmap 1, 2, and 4 should be plot as proportion of pheatmap 3 and 5 (default is FALSE)}
 }
 \value{
 Plot but do not return anything

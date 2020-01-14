@@ -508,6 +508,7 @@ plotAllBarPlotForCategoriesFromMyGR <- function(myGRs, nameOfColWithCate,
 #' 4=shared by all Ref in not a single of the set or Ref in not a single of the set
 #' 5=shared by all Ref: all or all Ref
 #' (default is 1:5)
+#' @param plotProportion logical whether to display the pheatmap 1, 2, and 4 should be plot as proportion of pheatmap 3 and 5 (default is FALSE)
 #' @return Plot but do not return anything
 #' @importFrom pheatmap pheatmap
 #' @export
@@ -519,7 +520,8 @@ plotAllPheatmapsFor2CategoriesFromMyGR <- function(myGRs, nameOfColWithCate1,
                                                    stringSet, nameOfRef,
                                                    fontsize = 10,
                                                    display_numbers = T,
-                                                   whichPheatmaps = 1:5){
+                                                   whichPheatmaps = 1:5,
+                                                   plotProportion = F){
   if (length(myGRs) < 2){
     stop("Wrong myGRs\n")
   }
@@ -586,13 +588,37 @@ plotAllPheatmapsFor2CategoriesFromMyGR <- function(myGRs, nameOfColWithCate1,
                 factor(GenomicRanges::mcols(inputsGR[[i]])[,
                                                            nameOfColWithCate2],
                        levels = rev(cateNames2)))
+    if(plotProportion && ! i %in% c(3, 5)){
+      if(i < 3){
+        t2 <- table(factor(GenomicRanges::mcols(inputsGR[[3]])[,
+                                                               nameOfColWithCate1],
+                           levels = rev(cateNames1)),
+                    factor(GenomicRanges::mcols(inputsGR[[3]])[,
+                                                               nameOfColWithCate2],
+                           levels = rev(cateNames2)))
+      } else {
+        t2 <- table(factor(GenomicRanges::mcols(inputsGR[[5]])[,
+                                                               nameOfColWithCate1],
+                           levels = rev(cateNames1)),
+                    factor(GenomicRanges::mcols(inputsGR[[5]])[,
+                                                               nameOfColWithCate2],
+                           levels = rev(cateNames2)))
+
+      }
+      line2 <- paste0(round(sum(t1) / sum(t2) * 100), "% of peaks")
+      t1 <- t1 / t2
+      t1[is.nan(t1)] <- 0
+      number_format <- "%.2f"
+    } else {
+      line2 <- paste0(sum(t1), " peaks")
+      number_format <- "%d"
+    }
     # We plot it
     pheatmap::pheatmap(t1, cluster_rows = F, cluster_cols = F,
-                       main = paste0(inputsGRWhat[[i]], "\n", sum(t1),
-                                     " peaks\n", what1, " vs ", what2,
+                       main = paste0(inputsGRWhat[[i]], "\n", line2, "\n", what1, " vs ", what2,
                                      "\nset:", stringSet, "\nref:", nameOfRef),
                        display_numbers = T,
-                       number_format = "%d",
+                       number_format = number_format,
                        fontsize = fontsize)
   }
 }
@@ -614,6 +640,7 @@ plotAllPheatmapsFor2CategoriesFromMyGR <- function(myGRs, nameOfColWithCate1,
 #' 4=shared by all Ref in not a single of the set or Ref in not a single of the set
 #' 5=shared by all Ref: all or all Ref
 #' (default is 1:5)
+#' @param plotProportion logical whether to display the pheatmap 1, 2, and 4 should be plot as proportion of pheatmap 3 and 5 (default is FALSE)
 #' @param allCates a vector of string with the categories to plot, if NULL all categories in `myGRAndAttributes` are used (default is NULL)
 #' @param display_numbers logical whether to display the numbers in the pheatmaps (default is TRUE)
 #' @return Plot barplots and pheatmaps but do not return anything
@@ -625,7 +652,8 @@ plotCateComparisonSetAndRef <- function(myGRAndAttributes, fontsize = 10,
                                         plotPheatmaps = TRUE,
                                         display_numbers = TRUE,
                                         whichPheatmaps = 1:5,
-                                        allCates = NULL){
+                                        allCates = NULL,
+                                        plotProportion = FALSE){
   if (is.null(allCates)){
     allCates <- myGRAndAttributes[["allCates"]]
   }
@@ -661,7 +689,8 @@ plotCateComparisonSetAndRef <- function(myGRAndAttributes, fontsize = 10,
                                                  myGRAndAttributes[["nameOfRef"]],
                                                  fontsize = fontsize,
                                                  display_numbers = display_numbers,
-                                                 whichPheatmaps = whichPheatmaps)
+                                                 whichPheatmaps = whichPheatmaps,
+                                                 plotProportion = plotProportion)
         }
       }
     }

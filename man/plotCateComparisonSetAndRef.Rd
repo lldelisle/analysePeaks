@@ -13,7 +13,8 @@ plotCateComparisonSetAndRef(
   plotPheatmaps = TRUE,
   display_numbers = TRUE,
   whichPheatmaps = 1:5,
-  allCates = NULL
+  allCates = NULL,
+  plotProportion = FALSE
 )
 }
 \arguments{
@@ -38,6 +39,8 @@ plotCateComparisonSetAndRef(
 (default is 1:5)}
 
 \item{allCates}{a vector of string with the categories to plot, if NULL all categories in `myGRAndAttributes` are used (default is NULL)}
+
+\item{plotProportion}{logical whether to display the pheatmap 1, 2, and 4 should be plot as proportion of pheatmap 3 and 5 (default is FALSE)}
 }
 \value{
 Plot barplots and pheatmaps but do not return anything
