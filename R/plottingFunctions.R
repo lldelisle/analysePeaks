@@ -511,6 +511,8 @@ plotAllBarPlotForCategoriesFromMyGR <- function(myGRs, nameOfColWithCate,
 #' @param plotProportion logical whether to display the pheatmap 1, 2, and 4 should be plot as proportion of pheatmap 3 and 5 (default is FALSE)
 #' @return Plot but do not return anything
 #' @importFrom pheatmap pheatmap
+#' @importFrom RColorBrewer brewer.pal
+#' @importFrom grDevices colorRampPalette
 #' @export
 plotAllPheatmapsFor2CategoriesFromMyGR <- function(myGRs, nameOfColWithCate1,
                                                    cateNames1, what1,
@@ -609,9 +611,13 @@ plotAllPheatmapsFor2CategoriesFromMyGR <- function(myGRs, nameOfColWithCate1,
       t1 <- t1 / t2
       t1[is.nan(t1)] <- 0
       number_format <- "%.2f"
+      breaks <- seq(0, 1, length.out = 101)
+      colors.name <- "PiYG"
     } else {
       line2 <- paste0(sum(t1), " peaks")
       number_format <- "%d"
+      breaks <- NA
+      colors.name <- "RdYlBu"
     }
     # We plot it
     pheatmap::pheatmap(t1, cluster_rows = F, cluster_cols = F,
@@ -619,7 +625,9 @@ plotAllPheatmapsFor2CategoriesFromMyGR <- function(myGRs, nameOfColWithCate1,
                                      "\nset:", stringSet, "\nref:", nameOfRef),
                        display_numbers = T,
                        number_format = number_format,
-                       fontsize = fontsize)
+                       fontsize = fontsize,
+                       breaks = breaks,
+                       color = colorRampPalette(rev(brewer.pal(n = 7, name = color.name)))(100))
   }
 }
 
