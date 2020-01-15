@@ -627,7 +627,7 @@ plotAllPheatmapsFor2CategoriesFromMyGR <- function(myGRs, nameOfColWithCate1,
                        number_format = number_format,
                        fontsize = fontsize,
                        breaks = breaks,
-                       color = colorRampPalette(rev(brewer.pal(n = 7, name = color.name)))(100))
+                       color = colorRampPalette(rev(brewer.pal(n = 7, name = colors.name)))(100))
   }
 }
 
