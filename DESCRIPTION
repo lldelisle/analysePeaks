@@ -1,6 +1,6 @@
 Package: analysePeaks
 Title: Compare, annotate your peaks
-Version: 1.0.3
+Version: 1.0.4
 Authors@R: 
     person(given = "Lucille",
            family = "Lopez-Delisle",
@@ -22,7 +22,8 @@ Imports:
     stats,
     pheatmap,
     reshape,
-    igraph
+    igraph,
+    rmarkdown
 Suggests: 
     testthat (>= 2.1.0),
     knitr,
