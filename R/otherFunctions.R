@@ -239,12 +239,19 @@ annotatePreCalculatedGRs <- function(grSetRep, grRef,
     if (! is.null(grLDistance)){
       for (jGR in 1:length(grLDistance)){
         nameJ <- names(grLDistance)[jGR]
+        df.closest <- as.data.frame(
+          GenomicRanges::distanceToNearest(myGRs[[iGR]],
+                                           grLDistance[[jGR]]))
         GenomicRanges::mcols(myGRs[[iGR]])[,
                                            paste0("distanceToNearest",
                                                   nameJ)] <-
-          as.data.frame(
-            GenomicRanges::distanceToNearest(myGRs[[iGR]],
-                                             grLDistance[[jGR]]))$distance
+          df.closest$distance[match(1:length(myGRs[[iGR]]), df.closest$queryHits)]
+        if (! is.null(names(grLDistance[[jGR]]))){
+          GenomicRanges::mcols(myGRs[[iGR]])[,
+                                             paste0("nameOfNearest",
+                                                    nameJ)] <-
+            names(grLDistance[[jGR]])[df.closest$subjectHits[match(1:length(myGRs[[iGR]]), df.closest$queryHits)]]
+        }
       }
     }
   }
