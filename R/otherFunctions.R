@@ -280,58 +280,62 @@ cateNamesFromThreshold <- function(thresholdValues, lastCateName, unit) {
 #' @importFrom GenomicRanges mcols
 #' @importFrom stats median
 #' @export
-annotateWithCate <- function(myGRAndAttributes, thresholdsForgrLScores,
-                             thresholdsForgrLDistance){
+annotateWithCate <- function(myGRAndAttributes, thresholdsForgrLScores = NULL,
+                             thresholdsForgrLDistance = NULL){
   allCates <- list()
-  for (jGR in 1:length(thresholdsForgrLScores)){
-    nameJ <- names(thresholdsForgrLScores)[jGR]
-    thresholdValues <- sort(thresholdsForgrLScores[[jGR]], decreasing = T)
-    if (stats::median(thresholdValues) > 1e3){
-      cateNames <- analysePeaks::cateNamesFromThreshold(
-        thresholdValues = thresholdValues / 1e3,
-        lastCateName = paste0("no", nameJ),
-        unit = "k")
-    } else {
-      cateNames <- analysePeaks::cateNamesFromThreshold(
+  if (!is.null(thresholdsForgrLScores)){
+    for (jGR in 1:length(thresholdsForgrLScores)){
+      nameJ <- names(thresholdsForgrLScores)[jGR]
+      thresholdValues <- sort(thresholdsForgrLScores[[jGR]], decreasing = T)
+      if (stats::median(thresholdValues) > 1e3){
+        cateNames <- analysePeaks::cateNamesFromThreshold(
+          thresholdValues = thresholdValues / 1e3,
+          lastCateName = paste0("no", nameJ),
+          unit = "k")
+      } else {
+        cateNames <- analysePeaks::cateNamesFromThreshold(
+          thresholdValues = thresholdValues,
+          lastCateName = paste0("no", nameJ),
+          unit = "")
+      }
+      whatString <- paste("score of", nameJ)
+      if (myGRAndAttributes[["useSummitPMFlanking"]]){
+        whatString <- paste(whatString,
+                            "in summit +/-",
+                            myGRAndAttributes[["flankingSize"]],
+                            "bp")
+      }
+      allCates[[length(allCates) + 1]] <- list(
+        nameOfOriCol = paste0("best", nameJ, "Score"),
+        nameOfCol = paste0("best", nameJ, "ScoreCate"),
+        cateNames = cateNames,
         thresholdValues = thresholdValues,
-        lastCateName = paste0("no", nameJ),
-        unit = "")
+        what = whatString)
     }
-    whatString <- paste("score of", nameJ)
-    if (myGRAndAttributes[["useSummitPMFlanking"]]){
-      whatString <- paste(whatString,
-                          "in summit +/-",
-                          myGRAndAttributes[["flankingSize"]],
-                          "bp")
-    }
-    allCates[[length(allCates) + 1]] <- list(
-      nameOfOriCol = paste0("best", nameJ, "Score"),
-      nameOfCol = paste0("best", nameJ, "ScoreCate"),
-      cateNames = cateNames,
-      thresholdValues = thresholdValues,
-      what = whatString)
   }
-  for (jGR in 1:length(thresholdsForgrLDistance)){
-    nameJ <- names(thresholdsForgrLDistance)[jGR]
-    thresholdValues <- sort(thresholdsForgrLDistance[[jGR]], decreasing = T)
-    if (median(thresholdValues) > 1e3){
-      cateNames <- analysePeaks::cateNamesFromThreshold(
-        thresholdValues = thresholdValues / 1e3,
-        lastCateName = paste0("at", nameJ),
-        unit = "kb")
-    } else {
-      cateNames <- analysePeaks::cateNamesFromThreshold(
+  if (! is.null(thresholdsForgrLDistance)){
+    for (jGR in 1:length(thresholdsForgrLDistance)){
+      nameJ <- names(thresholdsForgrLDistance)[jGR]
+      thresholdValues <- sort(thresholdsForgrLDistance[[jGR]], decreasing = T)
+      if (median(thresholdValues) > 1e3){
+        cateNames <- analysePeaks::cateNamesFromThreshold(
+          thresholdValues = thresholdValues / 1e3,
+          lastCateName = paste0("at", nameJ),
+          unit = "kb")
+      } else {
+        cateNames <- analysePeaks::cateNamesFromThreshold(
+          thresholdValues = thresholdValues,
+          lastCateName = paste0("at", nameJ),
+          unit = "bp")
+      }
+      whatString <- paste("distance to the closest", nameJ)
+      allCates[[length(allCates) + 1]] <- list(
+        nameOfOriCol = paste0("distanceToNearest", nameJ),
+        nameOfCol = paste0("distanceToNearest", nameJ, "Cate"),
+        cateNames = cateNames,
         thresholdValues = thresholdValues,
-        lastCateName = paste0("at", nameJ),
-        unit = "bp")
+        what = whatString)
     }
-    whatString <- paste("distance to the closest", nameJ)
-    allCates[[length(allCates) + 1]] <- list(
-      nameOfOriCol = paste0("distanceToNearest", nameJ),
-      nameOfCol = paste0("distanceToNearest", nameJ, "Cate"),
-      cateNames = cateNames,
-      thresholdValues = thresholdValues,
-      what = whatString)
   }
   myGRs <- myGRAndAttributes[["myGRs"]]
   for (i in 1:length(allCates)){
