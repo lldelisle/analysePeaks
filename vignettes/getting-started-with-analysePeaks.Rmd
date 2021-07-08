@@ -26,18 +26,18 @@ All these files should be in the same folder.
 if (!"devtools" %in% installed.packages()){
 install.packages("devtools", repos = "https://stat.ethz.ch/CRAN/")
 }
-devtools::install_github("lldelisle/usefulLDfunctions")
+devtools::install_github("lldelisle/usefulLDfunctions", upgrade = "never")
 library(usefulLDfunctions)
 options(repos = "https://stat.ethz.ch/CRAN/")
 safelyLoadAPackageInCRANorBioconductor("GenomicRanges")
 safelyLoadAPackageInCRANorBioconductor("rtracklayer")
 safelyLoadAPackageInCRANorBioconductor("combinat")
 safelyLoadAPackageInCRANorBioconductor("BiocGenerics")
-devtools::install_github("lldelisle/usefulLDfunctionsGR")
+devtools::install_github("lldelisle/usefulLDfunctionsGR", upgrade = "never")
 library(usefulLDfunctionsGR)
 safelyLoadAPackageInCRANorBioconductor("reshape")
 safelyLoadAPackageInCRANorBioconductor("pheatmap")
-devtools::install_github("lldelisle/analysePeaks")
+devtools::install_github("lldelisle/analysePeaks", upgrade = "never")
 library(analysePeaks)
 # Will be used in this tutorial to display overlaps
 safelyLoadAPackageInCRANorBioconductor("UpSetR")
