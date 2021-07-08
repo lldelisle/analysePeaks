@@ -120,6 +120,11 @@ allAnnot <- lapply(allAnnot, function(gr){
 })
 ```
 
+I will give names to the TSS to be able to access it in the outputs:
+```{r}
+names(allAnnot[["TSS"]]) <- allAnnot[["TSS"]]$gene_name
+```
+
 ## Evaluate all useful and interesting overlaps
 There are mainly 2 ways to evaluate the overlaps.
 ```{bash eval=FALSE}
