@@ -63,7 +63,7 @@ createMyGRs <- function(e, ovF, allExpe,
   # Specify when it is a totally specific peak
   grRef$inNoneOfTheSet <- TRUE
   grRef$inNoneOfTheSet[stats::na.omit(df[df$nbNA != (length(samplesToCheck) - 1),
-                                  nameOfRef])] <- F
+                                         nameOfRef])] <- F
   return(annotatePreCalculatedGRs(grSetRep, grRef,
                                   nameOfRef, stringSet,
                                   grLScores, grLDistance,
@@ -153,7 +153,7 @@ createMyGRsUsingSimpleOverlap <- function(mySet, allExpe,
   # We store in this GRanges the index of the overlapped item in Ref
   # (in the metadata "inUniqueRef")
   grSetRep$inNoneOfTheRef <- cluster.df$isInNoneOfRef[match(indexSetCom,
-                                                         cluster.df$name1)]
+                                                            cluster.df$name1)]
   indexRefCom <- sort(stats::na.omit(cluster.df$ref1[cluster.df$isCommonInRef]))
   grRef <- allExpe[[ref1]][indexRefCom]
   # We annotate the reference GRanges to
